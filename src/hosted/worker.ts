@@ -1,4 +1,5 @@
 /// <reference types="@cloudflare/workers-types" />
+import { fontResponse } from './fonts.js';
 import OAuthProvider from '@cloudflare/workers-oauth-provider';
 import type { OAuthHelpers, OAuthResourceAuth } from '@cloudflare/workers-oauth-provider';
 import { createHash } from 'node:crypto';
@@ -26,6 +27,7 @@ export default {
       if (!env.PUBLIC_ORIGIN) return secureResponse({ error: 'hosting_not_configured' }, 503);
       if (new URL(env.PUBLIC_ORIGIN).origin !== env.PUBLIC_ORIGIN || !env.PUBLIC_ORIGIN.startsWith('https://')) return secureResponse({ error: 'hosting_not_configured' }, 503);
       if (new URL(request.url).origin !== env.PUBLIC_ORIGIN) return secureResponse({ error: 'invalid_host' }, 400);
+      const font=fontResponse(request); if(font)return font;
       if (new URL(request.url).pathname === '/' && request.method === 'GET') return landingResponse(env.PUBLIC_ORIGIN, !!(env.DB && env.OAUTH_KV && env.CREDENTIAL_ENCRYPTION_KEY && env.CREDENTIAL_KEY_ID), env.ENABLE_PRODUCTION === 'true');
       if (!env.DB || !env.OAUTH_KV || !env.CREDENTIAL_ENCRYPTION_KEY || !env.CREDENTIAL_KEY_ID) return secureResponse({ error: 'hosting_not_configured' }, 503);
       const config: HostedConfig = { resource: env.PUBLIC_ORIGIN+'/mcp', authorizationServer: env.PUBLIC_ORIGIN, allowedOrigins: [env.PUBLIC_ORIGIN], productionEnabled: env.ENABLE_PRODUCTION === 'true' };

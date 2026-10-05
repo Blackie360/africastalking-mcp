@@ -84,3 +84,15 @@ test('SPA routes restore views, focus headings and recover unknown links without
  location.hash='#/unknown';handler();assert.deepEqual(active(),['home']);assert.equal(location.hash,'#/');
  assert.equal(focused,4);assert.doesNotMatch(script,/localStorage|sessionStorage|apiKey|access_token/);
 });
+
+test('self-hosted Geist assets load publicly with bounded routes and CSP',async()=>{
+ const origin='https://mcp.example.test';const env={PUBLIC_ORIGIN:origin};
+ for(const name of ['sans','mono']){
+  const response=await worker.fetch(new Request(origin+'/fonts/geist-'+name+'-1.7.2.woff2'),env,{});
+  assert.equal(response.status,200);assert.equal(response.headers.get('content-type'),'font/woff2');
+  assert.equal(Buffer.from(await response.arrayBuffer()).subarray(0,4).toString(),'wOF2');
+ }
+ const page=await landingResponse(origin,true,true);assert.match(page.headers.get('content-security-policy'),/font-src 'self'/);
+ const html=await page.text();assert.match(html,/font-display:swap/);assert.match(html,/Geist Sans/);assert.match(html,/Geist Mono/);
+ assert.match(onboardingCsp(),/font-src 'self'/);
+});
