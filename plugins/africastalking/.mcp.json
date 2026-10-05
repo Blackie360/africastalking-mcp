@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "africastalking": {
+      "type": "http",
+      "url": "https://at.blackielabs.com/mcp"
+    }
+  }
+}
