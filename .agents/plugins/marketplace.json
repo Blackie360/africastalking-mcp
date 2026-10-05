@@ -1,0 +1,12 @@
+{
+  "name": "blackielabs",
+  "interface": { "displayName": "Blackie Labs" },
+  "plugins": [
+    {
+      "name": "africastalking",
+      "source": { "source": "local", "path": "./plugins/africastalking" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}

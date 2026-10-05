@@ -9,7 +9,7 @@ An unofficial, sandbox-first MCP server for Africa’s Talking balance, SMS and 
 ## Connect without installing locally
 
 1. Open **[at.blackielabs.com](https://at.blackielabs.com/)** and choose your AI client.
-2. For Cursor, click **Add to Cursor**, allow your browser to open Cursor, and confirm the server. The web installer and remote JSON configuration are fallbacks. For Claude, ChatGPT and Codex, follow the client guide on the page; those clients do not have a verified universal install link.
+2. For Cursor, click **Add to Cursor**, allow your browser to open Cursor, and confirm the server. The web installer and remote JSON configuration are fallbacks. For Claude and ChatGPT, the Add button copies the endpoint and opens connection settings. For Codex, it copies the endpoint and shows the app settings to use. Confirm the connection in the client; these buttons do not silently install a server.
 3. Follow your client’s OAuth connection prompt. On the authorization page, start with **Sandbox**, enter your sandbox API key, and approve the read-only balance check. The sandbox username is filled automatically. Sending is optional and off by default.
 4. Return to your client and try the **first preview** prompt provided on the connection page.
 
@@ -21,7 +21,11 @@ The remote endpoint is `https://at.blackielabs.com/mcp`. Clients accepting remot
 {"mcpServers":{"africastalking":{"url":"https://at.blackielabs.com/mcp"}}}
 ```
 
-**If Add does not connect:** allow the browser to open Cursor, then approve installation and use the client’s Connect/login action. Copy the endpoint if the browser blocks the app link. If authorization fails after installation, restart the client’s connection flow; do not add your provider key to the URL. This staging service supports client metadata documents (CIMD) and rate-limited dynamic client registration (DCR). See [hosted deployment and compatibility checks](DEPLOYMENT.md).
+**If Add does not connect:** allow the browser to open Cursor, then approve installation and use the client’s Connect/login action. Copy the endpoint if the browser blocks the app link. If authorization fails after installation, restart the client’s connection flow; do not add your provider key to the URL. This staging service supports client metadata documents (CIMD) and rate-limited dynamic client registration (DCR). Real-client interoperability still needs verification. See [hosted deployment and compatibility checks](DEPLOYMENT.md).
+
+## Marketplace distribution
+
+A hosted plugin package lives in `plugins/africastalking/`, with a repository marketplace at `.agents/plugins/marketplace.json`. It contains only the remote MCP URL; users authenticate in the browser and do not run a local server. This package is prepared for review, not published or approved. See [platform submission instructions](DISTRIBUTION.md) for Cursor, Claude and the shared ChatGPT/Codex directory.
 
 ## What you get
 
