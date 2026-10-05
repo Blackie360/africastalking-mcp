@@ -1,4 +1,5 @@
 import type { Config } from './config.js';
+import { OPERATIONS, operationUrl, type Operation } from './operations.js';
 import { SafeError } from './errors.js';
 
 export type FetchLike = typeof fetch;
@@ -12,23 +13,28 @@ const MAX_RESPONSE_BYTES = 65536;
 export class AfricaTalkingHttp {
   constructor(private readonly config: Config, private readonly fetchFn: FetchLike = fetch) {}
 
-  async request(path: '/user' | '/messaging' | '/airtime/send', fields: Record<string, string>, signal?: AbortSignal): Promise<unknown> {
+  async request(operation: Operation, fields: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
     if (!this.config.apiKey) throw new SafeError('MISSING_CREDENTIALS', 'Set AT_API_KEY in your local environment before calling the provider.');
     if (this.config.environment === 'production' && !this.config.enableProduction) {
       throw new SafeError('PRODUCTION_DISABLED', 'Production network access requires AT_ENABLE_PRODUCTION=true.');
     }
-    const mutation = path !== '/user';
+    if (!Object.hasOwn(OPERATIONS, operation)) throw new SafeError('DESTINATION_BLOCKED', 'Provider destination blocked.');
+    const spec = OPERATIONS[operation];
+    const mutation = spec.mutation;
     if (signal?.aborted) throw new SafeError('CANCELLED', 'The request was cancelled before dispatch.');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
     const combinedSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
     try {
-      const form = new URLSearchParams({ username: this.config.username, ...fields });
-      const url = `${API_BASES[this.config.environment]}${path}${mutation ? '' : `?${form}`}`;
-      const response = await this.fetchFn(url, {
-        method: mutation ? 'POST' : 'GET',
-        headers: { apikey: this.config.apiKey, Accept: 'application/json', ...(mutation ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) },
-        ...(mutation ? { body: form.toString() } : {}),
+      const values = { username: this.config.username, ...fields };
+      const form = new URLSearchParams(Object.entries(values).map(([key, value]) => [key, String(value)]));
+      const url = operationUrl(operation, this.config.environment);
+      if (spec.method === 'GET') url.search = form.toString();
+      const post = spec.method === 'POST';
+      const response = await this.fetchFn(url.toString(), {
+        method: spec.method,
+        headers: { apikey: this.config.apiKey, Accept: 'application/json', ...(post ? { 'Content-Type': spec.encoding === 'json' ? 'application/json' : 'application/x-www-form-urlencoded' } : {}) },
+        ...(post ? { body: spec.encoding === 'json' ? JSON.stringify(values) : form.toString() } : {}),
         signal: combinedSignal,
         redirect: 'error',
       });

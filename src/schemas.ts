@@ -18,3 +18,18 @@ export const airtimeSchema = z.strictObject({
 });
 export type SmsInput = z.infer<typeof smsSchema>;
 export type AirtimeInput = z.infer<typeof airtimeSchema>;
+
+const cursor = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).default(0);
+const limit = z.number().int().min(1).max(100).default(20);
+const shortCode = z.string().regex(/^\d{1,8}$/);
+const keyword = z.string().min(1).max(50).regex(/^[A-Za-z0-9_.-]+$/);
+export const inboxSchema = z.strictObject({ lastReceivedId: cursor, limit, includeMessageText: z.boolean().default(false) });
+export const subscriptionsSchema = z.strictObject({ shortCode, keyword, lastReceivedId: cursor, limit });
+export const subscriptionChangeSchema = z.strictObject({ shortCode, keyword, phoneNumber: phoneSchema, dryRun });
+export const transactionSchema = z.strictObject({ transactionId: z.string().min(1).max(200).regex(/^[A-Za-z0-9_.-]+$/) });
+export const dataSchema = z.strictObject({
+  productName: z.string().min(1).max(100).regex(/^[A-Za-z0-9 _.-]+$/),
+  recipients: z.array(z.strictObject({ phoneNumber: phoneSchema, quantity: z.number().int().min(1).max(10240), unit: z.enum(['MB','GB']), validity: z.enum(['Day','Week','BiWeek','Month','Quarterly']) })).min(1).max(10).refine(values => unique(values.map(v => v.phoneNumber)), 'Duplicate recipients are not allowed'),
+  dryRun,
+});
+export const ussdPreviewSchema = z.strictObject({ text: z.string().max(1024).default('') });

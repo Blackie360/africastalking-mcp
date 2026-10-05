@@ -1,7 +1,7 @@
 {
   "name": "africastalking-mcp",
-  "version": "0.2.0",
-  "description": "Unofficial Africa\u2019s Talking MCP: stdio and encrypted multi-tenant hosted HTTP adapter",
+  "version": "0.3.0",
+  "description": "Unofficial Africa’s Talking MCP: stdio and encrypted multi-tenant hosted HTTP adapter",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -20,7 +20,7 @@
     "ussd": "node dist/examples/ussd-callback.js",
     "build:worker": "node scripts/build-worker.mjs",
     "test:oauth": "node --experimental-loader ./test/cloudflare-node-loader.mjs --test test/oauth-integration.mjs test/landing-integration.mjs",
-    "check:hosted": "npm run typecheck && npm run build && node --test dist/test/config.test.js dist/test/protocol.test.js dist/test/service.test.js dist/test/hosted.test.js dist/test/d1.test.js && npm run test:oauth && npm run build:worker"
+    "check:hosted": "npm run typecheck && npm run build && node --test dist/test/config.test.js dist/test/protocol.test.js dist/test/service.test.js dist/test/hosted.test.js dist/test/d1.test.js dist/test/extended-tools.test.js && npm run test:oauth && npm run build:worker"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "1.2.1",

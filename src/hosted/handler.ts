@@ -4,7 +4,8 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import { loadConfig } from '../config.js';
 import { SafeError } from '../errors.js';
 import { createServer } from '../server.js';
-import { API_BASES } from '../http.js';
+import { OPERATIONS, operationUrl, type Operation } from '../operations.js';
+import { SCOPES } from './contracts.js';
 import type { FetchLike } from '../http.js';
 import type { DedupeStore, HostedConfig, IdentityProvider, Principal, RateLimits } from './contracts.js';
 import { EncryptedCredentialStore, tenantId } from './credentials.js';
@@ -44,7 +45,7 @@ export function createHostedHandler(config: HostedConfig, deps: HostedDependenci
       const origin = request.headers.get('origin');
       if (origin && !config.allowedOrigins.includes(origin)) return secureResponse({ error: 'origin_denied' }, 403);
       if (url.pathname === '/.well-known/oauth-protected-resource/mcp' && request.method === 'GET') {
-        return secureResponse({ resource: config.resource, authorization_servers: [config.authorizationServer], scopes_supported: ['mcp:use', 'sms:send', 'airtime:send', 'production:use'], bearer_methods_supported: ['header'] });
+        return secureResponse({ resource: config.resource, authorization_servers: [config.authorizationServer], scopes_supported: [...SCOPES], bearer_methods_supported: ['header'] });
       }
       if (url.pathname !== '/mcp') return secureResponse({ error: 'not_found' }, 404);
       const { identity, credentials, limits, dedupe } = deps;
@@ -61,20 +62,28 @@ export function createHostedHandler(config: HostedConfig, deps: HostedDependenci
       if (credential.environment === 'production' && (!config.productionEnabled || !p.scopes.includes('production:use'))) return secureResponse({ error: 'production_disabled' }, 403);
       const local = loadConfig({
         AT_ENVIRONMENT: credential.environment, AT_USERNAME: credential.username, AT_API_KEY: credential.apiKey,
-        AT_ENABLE_MUTATIONS: String(credential.mutationsEnabled), AT_ENABLE_PRODUCTION: String(config.productionEnabled && credential.productionOptIn),
+        AT_ENABLE_MUTATIONS: String(credential.mutationsEnabled || credential.dataMutationsEnabled || credential.subscriptionsEnabled), AT_ENABLE_PRODUCTION: String(config.productionEnabled && credential.productionOptIn),
+        AT_ENABLE_DATA_MUTATIONS: String(credential.dataMutationsEnabled), AT_ENABLE_SUBSCRIPTIONS: String(credential.subscriptionsEnabled),
         AT_ALLOWED_RECIPIENTS: credential.allowedRecipients.join(','), AT_MAX_RECIPIENTS: '10',
       });
       const providerFetch: FetchLike = async (input, init) => {
         const target = new URL(String(input));
-        const base = new URL(API_BASES[credential.environment]);
-        if (target.origin !== base.origin || init?.redirect !== 'error') throw new SafeError('DESTINATION_BLOCKED', 'Provider destination blocked.');
+        const operation = (Object.keys(OPERATIONS) as Operation[]).find(key => {
+          const allowed = operationUrl(key, credential.environment);
+          return target.origin === allowed.origin && target.pathname === allowed.pathname && init?.method === OPERATIONS[key].method;
+        });
+        if (!operation || init?.redirect !== 'error') throw new SafeError('DESTINATION_BLOCKED', 'Provider destination blocked.');
+        const spec = OPERATIONS[operation];
+        if (!p.scopes.includes(spec.scope)) throw new SafeError('SCOPE_REQUIRED', 'Additional operation authorization is required. Reconnect to grant access.');
+        // Credential policy is independent of OAuth scopes; old grants cannot gain new writes.
+        const writeDisabled = ((spec.scope === 'sms:send' || spec.scope === 'airtime:send') && !credential.mutationsEnabled) ||
+          (spec.scope === 'data:send' && !credential.dataMutationsEnabled) ||
+          (spec.scope === 'subscriptions:manage' && !credential.subscriptionsEnabled);
+        if (writeDisabled) throw new SafeError('MUTATIONS_DISABLED', 'This operation is not enabled for the connection.');
         const path = target.pathname;
-        if (!['/version1/user', '/version1/messaging', '/version1/airtime/send'].includes(path)) throw new SafeError('DESTINATION_BLOCKED', 'Provider destination blocked.');
-        if (path !== '/version1/user') {
-          const scope = path.endsWith('/messaging') ? 'sms:send' : 'airtime:send';
-          if (!p.scopes.includes(scope)) throw new SafeError('SCOPE_REQUIRED', 'Additional send authorization is required.');
+        if (spec.mutation) {
           if (!await limits.consume(tenant, 'send', 10, 60)) throw new SafeError('RATE_LIMITED', 'Send rate limit reached; no request dispatched.');
-          const digest = createHash('sha256').update(JSON.stringify([credential.environment, path, init?.body])).digest('hex');
+          const digest = createHash('sha256').update(JSON.stringify([credential.environment, target.origin, path, init?.method, init?.body])).digest('hex');
           if (!await dedupe.reserve(tenant, digest, 300)) throw new SafeError('DUPLICATE_REQUEST', 'A matching send was already attempted. Check provider records before retrying.');
         }
         return (deps.providerFetch ?? fetch)(input, init);
@@ -83,6 +92,7 @@ export function createHostedHandler(config: HostedConfig, deps: HostedDependenci
       const http = createMcpHandler(() => {
         const server = createServer(local, providerFetch);
         server.registerTool('at_disconnect', {
+          title: 'Disconnect Africa’s Talking account',
           description: 'Delete only this connection’s encrypted credential. All client tokens for this connection lose provider access. Requires explicit user confirmation.',
           inputSchema: z.strictObject({ confirm: z.literal(true) }),
           annotations: { destructiveHint: true, readOnlyHint: false, idempotentHint: true, openWorldHint: false },

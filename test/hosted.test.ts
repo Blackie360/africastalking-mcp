@@ -167,3 +167,41 @@ test('consent choices grant precise scopes, validate by GET and create isolated 
   assert.equal((await submit('live',true)).status,303);assert.deepEqual(completed[2]?.scope,['mcp:use','credentials:manage','sms:send','airtime:send','production:use']);
   assert.equal(f.backend.records.size,3);assert.equal(reads,3);assert.doesNotMatch(JSON.stringify([...f.backend.records]),/synthetic|live_app/);
 });
+
+test('new hosted scopes and stored opt-ins isolate reads/writes from existing SMS consent',async()=>{
+ const f=fixture();let calls=0;
+ await f.credentials.put(tenantId(f.users.alice!),credential('synthetic-a'));
+ const h=createHostedHandler(config,{...f,limits:f.controls,dedupe:f.controls,providerFetch:async(url,init)=>{
+  calls++;assert.equal(new Headers(init?.headers).get('apikey'),'synthetic-a');
+  if(String(url).includes('/messaging'))return Response.json({SMSMessageData:{Messages:[]}});
+  if(String(url).includes('/subscription/create'))return Response.json({status:'Success'});
+  if(init?.method==='POST')return Response.json({entries:[{phoneNumber:'+254700000000',status:'Queued',transactionId:'AT-1'}]});
+  return Response.json({status:'Success',balance:'KES 1'});
+ }});
+ const data={productName:'TestProduct',recipients:[{phoneNumber:'+254700000000',quantity:50,unit:'MB',validity:'Day'}],dryRun:false};
+ const call=async(name:string,args:Record<string,unknown>)=>{const c=await clientFor(h,'alice');try{return await c.callTool({name,arguments:args});}finally{await c.close();}};
+ assert.match(JSON.stringify(await call('at_fetch_sms',{})),/SCOPE_REQUIRED/);
+ assert.match(JSON.stringify(await call('at_get_data_balance',{})),/SCOPE_REQUIRED/);
+ assert.match(JSON.stringify(await call('at_send_mobile_data',data)),/DATA_SEND_DISABLED/);assert.equal(calls,0);
+ f.users.alice={...f.users.alice!,scopes:['mcp:use','sms:read','data:read','data:send','subscriptions:manage']};
+ assert.equal((await call('at_fetch_sms',{})).isError,undefined);assert.equal((await call('at_get_data_balance',{})).isError,undefined);assert.equal(calls,2);
+ // Old ciphertext defaults new flags to false even if a token has additional scopes.
+ assert.match(JSON.stringify(await call('at_send_mobile_data',data)),/DATA_SEND_DISABLED/);assert.equal(calls,2);
+ await f.credentials.put(tenantId(f.users.alice!),credentialSchema.parse({apiKey:'synthetic-a',dataMutationsEnabled:true,subscriptionsEnabled:true,mutationsEnabled:false,allowedRecipients:['+254700000000']}));
+ assert.equal((await call('at_send_mobile_data',data)).isError,undefined);assert.equal(calls,3);
+ assert.match(JSON.stringify(await call('at_send_mobile_data',data)),/DUPLICATE_REQUEST/);assert.equal(calls,3);
+ assert.equal((await call('at_create_subscription',{shortCode:'46585',keyword:'TEST',phoneNumber:'+254700000000',dryRun:false})).isError,undefined);assert.equal(calls,4);
+ // Enabling data must never enable SMS when its stored permission is off.
+ f.users.alice={...f.users.alice!,scopes:[...f.users.alice!.scopes,'sms:send']};
+ assert.match(JSON.stringify(await call('at_send_sms',sms)),/MUTATIONS_DISABLED/);assert.equal(calls,4);
+});
+
+test('additional consent grants only checked new scopes; API key validation remains a single balance read',async()=>{
+ const f=fixture();let granted:string[]=[];let reads=0;
+ const base:AuthRequest={responseType:'code',clientId:'client',redirectUri:'https://client.test/callback',scope:['mcp:use'],state:'test',codeChallenge:'A'.repeat(43),codeChallengeMethod:'S256',resource:config.resource};
+ const oauth={approveConsent:async(_r:Request,_h:string,options:{scope:string[]})=>{granted=options.scope;return {request:{...base,scope:options.scope},headers:new Headers()};},completeAuthorization:async()=>({redirectTo:'https://client.test/callback?code=synthetic'})} as unknown as OAuthHelpers;
+ const h=createAuthorizationHandler(config,{oauth,credentials:f.credentials,limits:f.controls,replay:f.controls,providerFetch:async(url,init)=>{reads++;assert.match(String(url),/\/version1\/user\?/);assert.equal(init?.method,'GET');return Response.json({UserData:{balance:'KES 1'}});}});
+ const r=await h(new Request(config.authorizationServer+'/authorize',{method:'POST',headers:{Origin:config.authorizationServer},body:new URLSearchParams({handle:'new-services',consent:'true',apiKey:'synthetic',smsReadsEnabled:'true',dataMutationsEnabled:'true',subscriptionsEnabled:'true'})}));
+ assert.equal(r.status,303);assert.deepEqual(granted,['mcp:use','credentials:manage','sms:read','data:send','subscriptions:manage']);assert.equal(reads,1);
+ const tenant=[...f.backend.records.keys()][0]!;const saved=await f.credentials.get(tenant);assert.equal(saved?.dataMutationsEnabled,true);assert.equal(saved?.subscriptionsEnabled,true);assert.equal(saved?.mutationsEnabled,false);
+});

@@ -1,6 +1,6 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "africastalking",
-  "version": "0.1.0",
-  "description": "Unofficial Africa’s Talking balance, SMS previews and approved airtime through the hosted MCP service. Bring your own account."
+  "version": "0.2.0",
+  "description": "Unofficial hosted Africa’s Talking balance, SMS, subscriptions and mobile-data tools. Connect your own account through OAuth; changes require explicit permission."
 }

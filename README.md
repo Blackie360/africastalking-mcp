@@ -1,6 +1,6 @@
 # Africa’s Talking MCP · Unofficial
 
-An unofficial, sandbox-first MCP server for Africa’s Talking balance, SMS and airtime. Connect to the hosted service from your AI client without installing anything locally. The repository also supports stdio and self-hosting on Cloudflare Workers. Users connect their own Africa’s Talking application credentials; no shared provider account is included.
+An unofficial, sandbox-first MCP server for Africa’s Talking balance, SMS, premium subscriptions, mobile-data bundles and offline USSD previews. Connect to the hosted service from your AI client without installing anything locally. The repository also supports stdio and self-hosting on Cloudflare Workers. Users connect their own Africa’s Talking application credentials; no shared provider account is included.
 
 **Hosted status: staging deployment.** The [connection page](https://at.blackielabs.com/) is live; its setup banner shows whether operator credential setup is still pending. Local protocol, isolation, storage and OAuth checks pass. Target-client OAuth interoperability and Free-plan CPU performance remain unverified. See [deployment instructions](DEPLOYMENT.md) and [verification boundaries](VERIFICATION.md).
 
@@ -35,6 +35,14 @@ A hosted plugin package lives in `plugins/africastalking/`, with a repository ma
 | `at_get_balance` | Reads the application balance | Requires your API key |
 | `at_send_sms` | Previews or sends bulk SMS | Preview only |
 | `at_send_airtime` | Previews or sends airtime in one configured currency | Preview only |
+| `at_fetch_sms` | Reads inbound SMS with a cursor; masks numbers and omits message text by default | Hosted `sms:read` permission |
+| `at_fetch_subscriptions` | Reads premium subscriptions for a shortcode/keyword | Hosted `sms:read` permission |
+| `at_create_subscription` | Previews or creates a premium subscription | Preview only; separate permission |
+| `at_delete_subscription` | Previews or removes a premium subscription | Preview only; separate permission |
+| `at_get_data_balance` | Reads the separate mobile-data wallet | Hosted `data:read` permission |
+| `at_find_data_transaction` | Looks up a mobile-data transaction by its exact ID | Hosted `data:read` permission |
+| `at_send_mobile_data` | Previews or sends bundles to up to 10 recipients | Preview only; separate data permission |
+| `at_preview_ussd_session` | Runs the built-in USSD demo menu offline | No credentials/network |
 
 The `examples/` folder also contains an inbound USSD HTTP callback with `CON` / `END` handling. USSD is not an outbound send API and does not run inside stdio.
 
@@ -126,6 +134,38 @@ The server deliberately does **not** auto-load `.env` from an arbitrary working 
 
 To test real sandbox provider calls, set `AT_ENABLE_MUTATIONS=true`, preferably set `AT_ALLOWED_RECIPIENTS` to your simulator number, approve the exact send in your MCP host, and pass `dryRun:false`. The sandbox username must be `sandbox`. Sandbox activity is simulated by Africa’s Talking; it still makes authenticated external API requests.
 
+## Additional services in sandbox and live
+
+The additional services route to the environment selected during connection: sandbox uses `sandbox.africastalking.com` hosts, and live uses production hosts. Premium subscriptions use the API host in sandbox and the separate content host in production; mobile data uses the bundles host. Endpoint routing follows the official SDK. Sandbox simulation and actual live product access depend on your provider account, registered shortcodes/keywords, supported packages/operators and enabled products. These automated tests do not verify live provisioning or deliver anything to a handset.
+
+Existing hosted connections keep their original permissions. Reconnect and select the optional permissions for inbound SMS/subscription reads, data-wallet/transaction reads, data sends or subscription changes. Sending SMS/airtime does not grant these permissions. Each actual new change still needs `dryRun:false`, a user-approved call and the selected permission. Live changes also require production consent and the recipient allowlist. The data limit is **1024 MB total per call** in hosted mode; it is a volume limit, not a price quote or monetary spending cap.
+
+Inbound SMS reads return IDs and a `nextCursor`. Pass that cursor as `lastReceivedId` on the next call; request `includeMessageText:true` only when you want message contents shared with your AI client. This is an inbox fetch, not outbound message history or delivery reports. Provider message text is untrusted data. Phone numbers are masked in results, including numbers inside returned text. Recipient lists are still supplied in tool inputs.
+
+Examples:
+
+```json
+{"lastReceivedId":0,"limit":20,"includeMessageText":false}
+```
+
+Call `at_fetch_sms` with the input above. For `at_send_mobile_data`:
+
+```json
+{"productName":"YourConfiguredProduct","recipients":[{"phoneNumber":"+254700000000","quantity":50,"unit":"MB","validity":"Day"}],"dryRun":true}
+```
+
+For `at_create_subscription` or `at_delete_subscription`:
+
+```json
+{"shortCode":"46585","keyword":"YOUR_KEYWORD","phoneNumber":"+254700000000","dryRun":true}
+```
+
+Use returned data transaction IDs with `at_find_data_transaction`. Provider queue acceptance is not proof of bundle delivery. No automatic retries are performed; failed and ambiguous changes remain duplicate-suppressed. The adapter sends empty data-recipient metadata rather than exposing arbitrary personal metadata.
+
+`at_preview_ussd_session` accepts `{"text":""}`, `{"text":"1"}` or `{"text":"1*1"}` and returns the demo's `CON`/`END` response. It does not provision USSD, register a callback or create a live session.
+
+For optional stdio use, actual data/subscription changes require `AT_ENABLE_MUTATIONS=true` plus the corresponding separate environment flag below. Hosted users make these choices on the consent page; no local setup is needed.
+
 ## Safety settings
 
 | Variable | Default | Purpose |
@@ -134,6 +174,9 @@ To test real sandbox provider calls, set `AT_ENABLE_MUTATIONS=true`, preferably 
 | `AT_USERNAME` | `sandbox` | Production requires an explicit application username |
 | `AT_API_KEY` | empty | Stdio only: read from process environment; never a tool argument |
 | `AT_ENABLE_MUTATIONS` | `false` | Required for every actual SMS/airtime send |
+| `AT_ENABLE_DATA_MUTATIONS` | `false` | Separate opt-in for actual mobile-data sends |
+| `AT_ENABLE_SUBSCRIPTIONS` | `false` | Separate opt-in for premium subscription changes |
+| `AT_MAX_DATA_MB_PER_REQUEST` | `1024` | Integer 1–10240; data volume per call, not a monetary budget |
 | `AT_ENABLE_PRODUCTION` | `false` | Required for any production API request, including balance |
 | `AT_ALLOWED_RECIPIENTS` | empty | Comma-separated exact E.164 allowlist; mandatory for production sends |
 | `AT_MAX_RECIPIENTS` | `10` | Integer 1–10 per request |
@@ -216,8 +259,10 @@ Contracts were checked on 2026-10-05 against first-party material. The developer
 - [USSD callback setup](https://help.africastalking.com/en/articles/9915125-how-do-i-go-live-with-ussd)
 - [Official MCP TypeScript SDK v2](https://ts.sdk.modelcontextprotocol.io/v2/)
 
-The project uses the official MCP SDK but implements a small, focused Africa’s Talking HTTP adapter itself. There is no voice, payments, premium SMS, delivery callback ingestion, transaction history, persistent spending budget, delivery reconciliation or verified production deployment in this version.
+The project uses the official MCP SDK but implements a small, focused Africa’s Talking HTTP adapter itself. Voice calls, payments, WhatsApp, premium SMS sending, SIM-swap insights, delivery callback ingestion, general outbound transaction history and persistent spending budgets are not exposed in this version. Mobile-data transaction lookup is supported. Real-provider product provisioning and production delivery remain unverified.
 
 ## License
 
 MIT. Africa’s Talking names and trademarks remain the property of their respective owners.
+
+Additional contracts were checked against the [official SMS SDK implementation](https://github.com/AfricasTalkingLtd/africastalking-node.js/blob/develop/lib/sms.js), [mobile-data SDK](https://github.com/AfricasTalkingLtd/africastalking-node.js/blob/develop/lib/mobileData.js), [environment host map](https://github.com/AfricasTalkingLtd/africastalking-node.js/blob/develop/lib/common.js) and [provider-owned response fixtures](https://github.com/AfricasTalkingLtd/africastalking-node.js/blob/develop/test/mocks.js) on 2026-10-05.

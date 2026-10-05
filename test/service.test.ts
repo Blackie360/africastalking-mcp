@@ -44,7 +44,7 @@ test('status exposes safety defaults but neither credentials nor recipient phone
     unofficial: true, environment: 'sandbox', credentialsConfigured: true,
     mutationsEnabled: false, productionEnabled: false, defaultDryRun: true,
     allowedRecipientCount: 1, maxRecipients: 10, airtimeCurrency: 'KES',
-    maxAirtimePerRequest: '100.00', timeoutMs: 15000, automaticRetries: false,
+    maxAirtimePerRequest: '100.00', timeoutMs: 15000, dataMutationsEnabled: false, subscriptionsEnabled: false, maxDataMbPerRequest: 1024, automaticRetries: false,
     duplicateSuppressionSeconds: 300,
   });
   assert.doesNotMatch(JSON.stringify(status), new RegExp(`${KEY}|${A.slice(1)}`));

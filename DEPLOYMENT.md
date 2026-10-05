@@ -42,3 +42,9 @@ Benchmark CPU, memory, startup and D1/KV operations under the real runtime and e
 - [Cloudflare OAuth provider](https://github.com/cloudflare/workers-oauth-provider)
 - [MCP authorization specification](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)
 - [Cloudflare MCP authorization](https://developers.cloudflare.com/agents/model-context-protocol/protocol/authorization/)
+
+## Additional tools and permission upgrade
+
+Deploying the expanded tool set adds four OAuth scopes: `sms:read`, `data:read`, `data:send` and `subscriptions:manage`. Existing grants do not acquire them automatically; users reconnect and select the corresponding checkboxes. Old encrypted records default the new write permissions to false. SMS/airtime consent cannot enable data sending or subscription changes. All actual changes share the per-connection send counter and durable duplicate reservations. Read requests use the normal request limit.
+
+The Worker allows only fixed method/host/path combinations from `src/operations.ts`. Inbound SMS GETs are distinct from SMS POSTs. Production subscription requests use the content host; sandbox uses the API host. Data calls use the environment-specific bundles host. Hosted data sends have a 1024 MB per-call volume cap, not a monetary cap. Retest target clients' tool discovery and reconnect to verify the upgraded permission flow before offering newly enabled provider products.
