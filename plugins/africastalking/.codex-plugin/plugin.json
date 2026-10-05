@@ -1,7 +1,7 @@
 {
   "name": "africastalking",
-  "version": "0.1.0",
-  "description": "Unofficial hosted Africa\u2019s Talking tools; connect your own account through OAuth.",
+  "version": "0.2.0",
+  "description": "Unofficial hosted Africa’s Talking balance, SMS, subscriptions and mobile-data tools. Connect your own account through OAuth; changes require explicit permission.",
   "author": {
     "name": "Blackie360",
     "url": "https://github.com/Blackie360"
@@ -10,7 +10,7 @@
   "license": "MIT",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "Africa\u2019s Talking \u00b7 Unofficial",
+    "displayName": "Africa’s Talking · Unofficial",
     "shortDescription": "Balance reads, SMS previews and approved airtime.",
     "developerName": "Blackie360",
     "category": "Productivity",

@@ -11,7 +11,7 @@ test('configuration defaults are sandbox-first, mutation-disabled and immutable'
   const config = loadConfig({});
   assert.deepEqual(config, {
     environment: 'sandbox', username: 'sandbox', apiKey: '', enableMutations: false,
-    enableProduction: false, allowedRecipients: [], maxRecipients: 10,
+    enableProduction: false, enableDataMutations: false, enableSubscriptions: false, maxDataMb: 1024, allowedRecipients: [], maxRecipients: 10,
     airtimeCurrency: 'KES', maxAirtimeMinor: 10000, timeoutMs: 15000,
   });
   assert.ok(Object.isFrozen(config));
@@ -29,7 +29,7 @@ test('configuration parses explicit values and trims and deduplicates the allowl
   });
   assert.deepEqual(config, {
     environment: 'production', username: 'application_1.test', apiKey: 'test-secret',
-    enableMutations: true, enableProduction: true, allowedRecipients: [PHONE, SECOND_PHONE],
+    enableMutations: true, enableProduction: true, enableDataMutations: false, enableSubscriptions: false, maxDataMb: 1024, allowedRecipients: [PHONE, SECOND_PHONE],
     maxRecipients: 2, airtimeCurrency: 'USD', maxAirtimeMinor: 30, timeoutMs: 100,
   });
 });
@@ -40,6 +40,9 @@ for (const [field, values] of Object.entries({
   AT_API_KEY: ['has spaces', 'new\nline', 'null\0byte', 'x'.repeat(1001)],
   AT_ENABLE_MUTATIONS: ['TRUE', '1', 'yes', ''],
   AT_ENABLE_PRODUCTION: ['FALSE', '0', 'no', ''],
+  AT_ENABLE_DATA_MUTATIONS: ['TRUE', '1', 'yes', ''],
+  AT_ENABLE_SUBSCRIPTIONS: ['TRUE', '1', 'yes', ''],
+  AT_MAX_DATA_MB_PER_REQUEST: ['0','10241','1.5','NaN','Infinity',''],
   AT_MAX_RECIPIENTS: ['0', '-1', '11', '1.5', 'NaN', 'Infinity', ''],
   AT_AIRTIME_CURRENCY: ['kes', 'KE', 'KESS', '123'],
   AT_MAX_AIRTIME_PER_REQUEST: ['0', '0.00', '-1', '1e2', '1.001', '01.00', '1000000000'],

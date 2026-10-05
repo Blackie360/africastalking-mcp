@@ -9,6 +9,8 @@ export const credentialSchema = z.strictObject({
   environment: z.enum(['sandbox', 'production']).default('sandbox'),
   username: z.string().min(1).max(100).regex(/^[A-Za-z0-9_.-]+$/).default('sandbox'),
   mutationsEnabled: z.boolean().default(false),
+  dataMutationsEnabled: z.boolean().default(false),
+  subscriptionsEnabled: z.boolean().default(false),
   productionOptIn: z.boolean().default(false),
   allowedRecipients: z.array(phoneSchema).max(10).default([]),
 }).superRefine((c, ctx) => {

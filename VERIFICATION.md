@@ -37,3 +37,11 @@ Regression tests verify install-link payloads, custom-origin configuration, esca
 ## Client buttons and plugin packaging (2026-10-05)
 
 Claude and ChatGPT now have Add actions that copy the remote endpoint and open their setup page. Codex copies the endpoint and shows desktop settings. Guides remain visible without JavaScript. The portable hosted plugin and Codex compatibility package are exposed through a repository marketplace. Tests cover guided-copy success and denial, remote-only plugin definitions, marketplace paths and client handoffs. The full hosted checks, seven OAuth/landing tests and existing 70-test suite passed. Directory approval, public publication and installation in all target clients are not established by these changes.
+
+## Expanded tools (2026-10-05)
+
+Eight tools were added for inbound SMS, premium subscription reads/create/delete, mobile-data wallet/transaction/send, and offline USSD demo previews. There are now 12 stdio tools and 13 hosted tools including disconnect. New hosted scopes require reconnecting and checking the corresponding optional permissions; old grants and encrypted records cannot acquire new write access implicitly.
+
+Validation: `npm run check:hosted` passes 81 service/configuration/protocol/storage tests, six OAuth/landing integration tests, TypeScript checks and the Worker bundle. `npm test` passes 83 tests. Added tests cover sandbox/production host separation, method and form/JSON contracts, cursor pagination, redacted message/transaction data, volume and recipient limits, independent opt-ins, old-connection scope rejection, durable duplicate suppression and ambiguous failures without retries. Real stdio discovery covers all new names and credential-free previews.
+
+Provider contracts follow the official Node SDK and response fixtures at commit 7457553651a8a5179ac49fb0f463cfc1a860df25. No live provider calls, paid data sends or subscriber changes were performed. Sandbox/live product provisioning and end-to-end provider availability remain unverified; callback-driven voice, WhatsApp, payments and SIM-swap insights were researched but are not exposed by this change.
