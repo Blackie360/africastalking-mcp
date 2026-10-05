@@ -27,3 +27,9 @@ Live-account connections are enabled at the reference deployment after these che
 The consent page now uses a responsive two-column desktop layout and a single-column mobile form. Synthetic local browser checks at desktop and 390px widths verified no horizontal overflow, keyboard-controlled key visibility, required-field validation, live-field requirements, sandbox reset, and expired-request recovery. Screenshots contain only synthetic client details and empty key inputs. Real user authorization pages or credential contents were not captured.
 
 The hosted suite includes 68 configuration/service/security tests and three OAuth/landing/consent integration checks. CSP hashes cover the exact inline scripts and styles. Client registration uses the OAuth library's DCR endpoint after Cursor reported a DCR compatibility error; real Cursor progressed to Needs Authentication. This does not establish completed provider authorization.
+
+## Hosted onboarding simplification (2026-10-05)
+
+The hosted connection path now leads the README. Cursor uses its documented native install link with a web fallback. Sandbox consent needs only the API key and read-only check consent; live fields appear when selected, and sending stays unchecked. Copyable remote JSON and a first-preview prompt are available on the landing page. Self-hosted Codex instructions use the deployed origin.
+
+Regression tests verify install-link payloads, custom-origin configuration, escaped client metadata, exact onboarding CSP hashes, and sandbox/live form transitions including clearing live consent. Existing protocol, isolation, consent and provider tests remain applicable. These changes have not been deployed or verified inside real MCP clients. The reference hostname could not be resolved from the editing environment; current live-site availability and the reported Add-button failure remain unconfirmed.

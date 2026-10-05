@@ -1,10 +1,27 @@
 # Africa’s Talking MCP · Unofficial
 
-An unofficial, sandbox-first MCP server for Africa’s Talking balance, SMS and airtime. Run locally over stdio, or self-host the multi-tenant HTTP adapter on Cloudflare Workers. Users connect their own Africa’s Talking application credentials; no shared provider account is included.
+An unofficial, sandbox-first MCP server for Africa’s Talking balance, SMS and airtime. Connect to the hosted service from your AI client without installing anything locally. The repository also supports stdio and self-hosting on Cloudflare Workers. Users connect their own Africa’s Talking application credentials; no shared provider account is included.
 
 **Hosted status: staging deployment.** The [connection page](https://at.blackielabs.com/) is live; its setup banner shows whether operator credential setup is still pending. Local protocol, isolation, storage and OAuth checks pass. Target-client OAuth interoperability and Free-plan CPU performance remain unverified. See [deployment instructions](DEPLOYMENT.md) and [verification boundaries](VERIFICATION.md).
 
 **Not affiliated with, endorsed by or maintained by Africa’s Talking.** This is a tested starter implementation, not a production-certified integration. No credentials are included. It has not sent a live SMS or airtime transaction.
+
+## Connect without installing locally
+
+1. Open **[at.blackielabs.com](https://at.blackielabs.com/)** and choose your AI client.
+2. For Cursor, click **Add to Cursor**, allow your browser to open Cursor, and confirm the server. The web installer and remote JSON configuration are fallbacks. For Claude, ChatGPT and Codex, follow the client guide on the page; those clients do not have a verified universal install link.
+3. Follow your client’s OAuth connection prompt. On the authorization page, start with **Sandbox**, enter your sandbox API key, and approve the read-only balance check. The sandbox username is filled automatically. Sending is optional and off by default.
+4. Return to your client and try the **first preview** prompt provided on the connection page.
+
+No clone, Node.js, npm, build, terminal or local server is needed for hosted use. Your own Africa’s Talking account and API key are required. Enter the key only on the HTTPS authorization page, never in chat or the remote configuration.
+
+The remote endpoint is `https://at.blackielabs.com/mcp`. Clients accepting remote JSON entries can merge this with their existing settings:
+
+```json
+{"mcpServers":{"africastalking":{"url":"https://at.blackielabs.com/mcp"}}}
+```
+
+**If Add does not connect:** allow the browser to open Cursor, then approve installation and use the client’s Connect/login action. Copy the endpoint if the browser blocks the app link. If authorization fails after installation, restart the client’s connection flow; do not add your provider key to the URL. This staging service supports client metadata documents (CIMD) and rate-limited dynamic client registration (DCR). See [hosted deployment and compatibility checks](DEPLOYMENT.md).
 
 ## What you get
 
@@ -25,7 +42,7 @@ Each authorization creates a new opaque connection, including when every sandbox
 
 Hosted sends have per-connection scopes, up to 10 recipients/call, a live recipient allowlist, 10 send requests/minute and a KES 100 airtime face-value cap/call. Identical payloads are reserved in D1 for five minutes before dispatch, including ambiguous failures. These are connection limits, not account-wide budgets: repeated authorizations create independent limits. Use human approval for every funded transaction.
 
-## Quick start: no credentials needed
+## Optional local development: no credentials needed
 
 Requires **Node.js 22.15+** and npm. Node 24 is recommended; this project was tested on Node 24.21.0.
 
@@ -90,7 +107,7 @@ Try asking your client: “Show Africa’s Talking safety settings, then preview
 
 Amounts are decimal **strings**, not floating-point numbers. Recipients must be unique E.164 numbers. Preview results mask recipients and omit message text; the host already sees the original tool arguments. Optional SMS `senderId` must be registered with the provider for your market. A preview is not a price quote or a check that a phone number, sender ID, currency or operator is supported.
 
-## Add your sandbox key locally
+## Optional local credentials
 
 Copy `.env.example` to `.env`, protect the file and enter your own sandbox API key locally. Do not paste it into a chat, source control or logs. Never use the production API key with the sandbox endpoint.
 

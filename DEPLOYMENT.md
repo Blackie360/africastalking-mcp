@@ -2,6 +2,12 @@
 
 This repository contains a staging adapter and a public connection landing page. The reference deployment is https://at.blackielabs.com/; `/mcp` remains fail-closed until its operator securely completes configuration. Do not enter real credentials until you have verified the deployed origin and completed the checks below. Deployment creates persistent resources and a service that processes other users’ provider credentials; obtain the operator’s approval first.
 
+## Hosted users
+
+Users do not deploy or install this repository. Send them to [the connection page](https://at.blackielabs.com/) to add the hosted endpoint to their client and enter their own provider key during OAuth. Sandbox onboarding fills the username automatically; live onboarding still requires the application username, recipient allowlist and explicit live consent. The Add to Cursor button uses the [documented native install link](https://cursor.com/docs/mcp/install-links), with a web installer and URL/configuration copy fallback. Other clients receive explicit instructions rather than unsupported install links.
+
+Client installation and OAuth connection are separate steps. Confirm installation, then start the client’s Connect/login flow. A functioning button alone does not establish OAuth interoperability. DCR is enabled for clients such as Cursor; installation still requires a separate OAuth connection and user consent.
+
 ## Dedicated resources
 
 Use a dedicated Cloudflare Worker, D1 database and Workers KV namespace. Do not reuse another application’s database, OAuth store or encryption key. Start on the Free plan only when its current limits fit your tests; do not assume the OAuth and encryption work fits its CPU budget. No paid upgrade is required by these instructions.
