@@ -1,23 +1,33 @@
+import { createHash } from 'node:crypto';
 import type { ConsentDescription } from '@cloudflare/workers-oauth-provider';
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+const styles = `*{box-sizing:border-box}body{margin:0;background:#faf9fb;color:#152344;font:16px/1.6 system-ui,sans-serif}main{max-width:640px;margin:40px auto;padding:28px;background:white;border:1px solid #dfe3eb;border-radius:12px}h1{line-height:1.2}label{display:block;font-weight:600}input:not([type=checkbox]),select{display:block;width:100%;padding:12px;margin:8px 0;border:1px solid #8995ac;border-radius:5px;font:inherit}input[type=checkbox]{width:20px;height:20px;vertical-align:middle}button{background:#00082f;color:white;padding:14px 22px;border:0;border-radius:6px;font:inherit;cursor:pointer}small,.hint{color:#586377}small{display:block}details{margin:20px 0;border-top:1px solid #dfe3eb;padding-top:14px}summary{cursor:pointer;font-weight:600}a{color:#001d58}:focus-visible{outline:3px solid #964bea;outline-offset:3px}[hidden]{display:none!important}@media(max-width:680px){main{margin:12px;padding:20px}}`;
+const script = `
+const form=document.querySelector('form');const environment=form.elements.environment;const username=form.elements.username;const recipients=form.elements.allowedRecipients;const optIn=form.elements.productionOptIn;const liveFields=document.getElementById('live-fields');
+function updateEnvironment(){const live=environment.value==='production';liveFields.hidden=!live;username.required=live;username.readOnly=!live;if(!live){username.value='sandbox';if(optIn)optIn.checked=false;}else if(username.value==='sandbox'){username.value='';}recipients.required=live;if(optIn)optIn.required=live;document.getElementById('key-hint').textContent=live?'Use the API key for your live application.':'Use your sandbox API key. Sandbox messages reach only the simulator.';}
+environment.addEventListener('change',updateEnvironment);updateEnvironment();
+form.addEventListener('submit',()=>{if(form.checkValidity()){const button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='Checking account and connecting…';}});
+`;
+export function onboardingCsp(): string {
+  const hash = (s: string) => createHash('sha256').update(s).digest('base64');
+  return `default-src 'none'; style-src 'sha256-${hash(styles)}'; script-src 'sha256-${hash(script)}'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`;
+}
 export function onboardingPage(handle: string, d: ConsentDescription, productionEnabled: boolean): string {
-  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Connect Africa’s Talking</title><body><main>
-<h1>Connect your Africa’s Talking application</h1>
-<p>Client: <strong>${esc(d.clientName)}</strong> ${d.clientDomain ? `(${esc(d.clientDomain)})` : '(client-provided name)'}. Redirect destination: ${esc(d.redirectHost)}.</p>
-${d.redirectIsLoopback ? '<p>This returns to a local app. Any local process could be listening; verify the client you started.</p>' : ''}
-<p>Client-requested permissions: ${d.scope.map(esc).join(', ')}. You grant account reads and connection removal; sending and live access are optional below.</p>
-<p>No Google or GitHub login. Your API key proves application access, not personal identity. Each authorization creates a separate connection. Authorize twice to use both sandbox and live.</p>
-<p>This unofficial service stores your key encrypted, never in MCP tokens or chat. Sandbox reaches only the simulator. Live SMS and airtime use your own account balance, rates, sender registrations and recipient eligibility. No shared account or free live SMS is provided.</p>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect Africa’s Talking</title><style>${styles}</style></head><body><main>
+<p class="hint">Africa’s Talking MCP · Unofficial</p><h1>Connect your account</h1><p>No download or local setup. Enter your API key here, then return to your AI client.</p>
+<details><summary>Review the client requesting access</summary><p>Client: <strong>${esc(d.clientName)}</strong> ${d.clientDomain ? `(${esc(d.clientDomain)})` : '(client-provided name)'}. Redirect destination: ${esc(d.redirectHost)}.</p>
+${d.redirectIsLoopback ? '<p>This returns to a local app. Verify the client you started before connecting.</p>' : ''}
+<p>Client-requested permissions: ${d.scope.map(esc).join(', ')}. You grant account reads and connection removal; sending and live access are optional below.</p></details>
 <form method="post" action="/authorize" autocomplete="off">
 <input type="hidden" name="handle" value="${esc(handle)}">
-<p><label>Environment <select name="environment"><option value="sandbox">Sandbox (default)</option>${productionEnabled ? '<option value="production">Live / Production</option>' : ''}</select></label></p>
-<p><label>Application username <input name="username" value="sandbox" required maxlength="100"></label> For live, enter the live app username.</p>
-<p><label>API key for this environment <input type="password" name="apiKey" autocomplete="new-password" required maxlength="1000"></label></p>
-<p><label>Allowed recipients (comma-separated, +country code; required for live) <input name="allowedRecipients" maxlength="200"></label></p>
-<p><label><input type="checkbox" name="mutationsEnabled" value="true"> Allow SMS and airtime sends I authorize through this client (10 recipients/call, 10 sends/minute, KES 100 airtime face value/call)</label></p>
-${productionEnabled ? '<p><label><input type="checkbox" name="productionOptIn" value="true"> Enable live requests and charges to my own account. A registered sender and enough balance may be required.</label></p>' : ''}
-<p><label><input type="checkbox" name="consent" value="true" required> Validate with one read-only balance request, store my key encrypted for this connection, and grant the permissions above. No automatic transaction retries.</label></p>
-<button type="submit">Connect and authorize</button></form>
-<p>Remove a connection with the connection-removal tool or revoke the client grant.</p>
-</main></body></html>`;
+<p><label for="environment">Choose your account</label><select id="environment" name="environment"><option value="sandbox">Sandbox — start here</option>${productionEnabled ? '<option value="production">Live / Production</option>' : ''}</select></p>
+<p><label for="api-key">Africa’s Talking API key</label><input id="api-key" type="password" name="apiKey" autocomplete="new-password" required maxlength="1000" aria-describedby="key-hint"><small id="key-hint">Use your sandbox API key. Sandbox messages reach only the simulator.</small><a href="https://account.africastalking.com/" target="_blank" rel="noopener noreferrer">Open Africa’s Talking to find your key ↗</a></p>
+<div id="live-fields"><p><label for="username">Application username</label><input id="username" name="username" value="sandbox" required maxlength="100"><small>Sandbox uses “sandbox”. For live, enter your application username.</small></p>
+<p><label for="recipients">Allowed recipients</label><input id="recipients" name="allowedRecipients" maxlength="200" placeholder="+254700000000"><small>Comma-separated numbers with +country code. Required for live connections.</small></p>
+${productionEnabled ? '<p><label><input type="checkbox" name="productionOptIn" value="true"> Enable live requests and charges to my own account.</label><small>A registered sender and sufficient balance may be required.</small></p>' : ''}</div>
+<details><summary>Optional: enable sending SMS and airtime</summary><p>Leave this off to start with balance reads and previews.</p><p><label><input type="checkbox" name="mutationsEnabled" value="true"> Allow sends I approve through this client</label><small>10 recipients/call, 10 sends/minute, KES 100 airtime face value/call. Keep your client’s per-call approvals enabled.</small></p></details>
+<p><label><input type="checkbox" name="consent" value="true" required> Check my balance once and securely save my key for this connection.</label><small>This grants account reads and connection removal. No SMS or airtime is sent during setup.</small></p>
+<button type="submit">Connect account</button><noscript><p>JavaScript is optional. For sandbox, keep username “sandbox” and leave live consent unchecked. For live, fill in the username, allowed recipients and live consent.</p></noscript></form>
+<details><summary>How your credentials are handled</summary><p>This unofficial service stores your key encrypted, never in MCP tokens or chat. The hosting operator can access runtime credentials. Connect only if you trust this service. Each authorization creates a separate connection; authorize separately for sandbox and live.</p><p>Your API key proves application access, not personal identity. Live SMS and airtime use your account balance, rates and sender registrations. There is no shared account, free live SMS or automatic transaction retry.</p><p>Use the at_disconnect tool to delete this connection’s stored key. Revoking the client grant alone does not delete the encrypted credential.</p></details>
+</main><script>${script}</script></body></html>`;
 }
