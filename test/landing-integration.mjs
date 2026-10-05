@@ -64,3 +64,23 @@ test('plugin marketplace resolves to a credential-free hosted package in both su
  assert.equal(config.mcpServers.africastalking.type,'http');
  for(const file of [remote,config]){assert.equal(file.mcpServers.africastalking.url,'https://at.blackielabs.com/mcp');assert.doesNotMatch(JSON.stringify(file),/command|apiKey|AT_API_KEY|Authorization|env/);}
 });
+
+test('SPA routes restore views, focus headings and recover unknown links without reading credentials',async()=>{
+ const html=await landingResponse('https://mcp.example.test',true,true).text();
+ const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+ const {runInNewContext}=await import('node:vm');
+ const views=['home','connect','how','security'].map(view=>({dataset:{view},hidden:false}));
+ let focused=0,handler;
+ const heading={setAttribute(){},focus(){focused++;}};
+ const location={hash:'#/connect'};
+ const document={title:'',getElementById:()=>({}),querySelectorAll:s=>s==='[data-view]'?views:[],querySelector:()=>heading};
+ const history={replaceState(_state,_title,hash){location.hash=hash;}};
+ const window={addEventListener(event,fn){assert.equal(event,'hashchange');handler=fn;},scrollTo(){}};
+ runInNewContext(script,{document,location,history,window,setTimeout,clearTimeout});
+ const active=()=>views.filter(v=>!v.hidden).map(v=>v.dataset.view);
+ assert.deepEqual(active(),['connect']);assert.match(document.title,/Connect Cursor/);
+ location.hash='#/how';handler();assert.deepEqual(active(),['how']);
+ location.hash='#/connect';handler();assert.deepEqual(active(),['connect']);
+ location.hash='#/unknown';handler();assert.deepEqual(active(),['home']);assert.equal(location.hash,'#/');
+ assert.equal(focused,4);assert.doesNotMatch(script,/localStorage|sessionStorage|apiKey|access_token/);
+});
