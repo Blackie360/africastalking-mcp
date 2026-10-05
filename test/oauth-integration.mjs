@@ -11,12 +11,14 @@ class MockKV {
  async getWithMetadata(k,type){return {value:await this.get(k,type),metadata:this.data.get(k)?.metadata??null};}
 }
 const base='https://mcp.example.test';
-const options={apiRoute:'/mcp',apiHandler:{fetch:(_r,_e,ctx)=>Response.json({subject:ctx.props.subject,scope:ctx.auth.scope})},defaultHandler:{fetch:()=>new Response('authorization UI')},authorizeEndpoint:'/authorize',tokenEndpoint:'/oauth/token',resourceMetadata:{resource:base+'/mcp',authorization_servers:[base]},requiredScopes:['mcp:use'],scopesSupported:['mcp:use'],accessTokenTTL:600,refreshTokenTTL:3600};
+const options={apiRoute:'/mcp',apiHandler:{fetch:(_r,_e,ctx)=>Response.json({subject:ctx.props.subject,scope:ctx.auth.scope})},defaultHandler:{fetch:()=>new Response('authorization UI')},authorizeEndpoint:'/authorize',tokenEndpoint:'/oauth/token',clientRegistrationEndpoint:'/oauth/register',resourceMetadata:{resource:base+'/mcp',authorization_servers:[base]},requiredScopes:['mcp:use'],scopesSupported:['mcp:use'],accessTokenTTL:600,refreshTokenTTL:3600};
 const ctx={waitUntil(){},passThroughOnException(){}};
 
 test('real OAuth library validates redirect, binds consent cookie, verifies PKCE, rejects code replay and revokes token',async()=>{
  const env={OAUTH_KV:new MockKV()};const provider=new OAuthProvider(options);const api=getOAuthApi(options,env);
- const client=await api.createClient({clientName:'Test client',redirectUris:['https://client.example.test/callback'],tokenEndpointAuthMethod:'none',grantTypes:['authorization_code','refresh_token'],responseTypes:['code']});
+ const registration=await provider.fetch(new Request(base+'/oauth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_name:'Test client',redirect_uris:['https://client.example.test/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code']})}),env,ctx);
+ assert.equal(registration.status,201);const registered=await registration.json();assert.ok(registered.client_id);assert.equal(registered.client_secret,undefined);
+ const client={clientId:registered.client_id};
  const verifier='v'.repeat(43),challenge=createHash('sha256').update(verifier).digest('base64url');
  const params=new URLSearchParams({client_id:client.clientId,redirect_uri:'https://client.example.test/callback',response_type:'code',scope:'mcp:use',state:'test-state',code_challenge:challenge,code_challenge_method:'S256',resource:base+'/mcp'});
  const auth=await api.parseAuthRequest(new Request(base+'/authorize?'+params));

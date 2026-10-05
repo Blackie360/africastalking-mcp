@@ -38,9 +38,11 @@ export default {
       if (!address) return secureResponse({ error: 'edge_context_required' }, 503);
       const edgeKey = createHash('sha256').update(address).digest('hex');
       if (!await controls.consume('edge:'+edgeKey, 'request', 120, 60)) return secureResponse({ error: 'rate_limited' }, 429);
+      if (new URL(request.url).pathname === '/oauth/register' && !await controls.consume('registration:'+edgeKey, 'credential', 10, 3600)) return secureResponse({ error: 'rate_limited' }, 429);
       const provider = new OAuthProvider<Env>({
         apiRoute: '/mcp', authorizeEndpoint: '/authorize', tokenEndpoint: '/oauth/token',
-        // CIMD is preferred. DCR is disabled until target-client interoperability requires it.
+        // Cursor requires DCR; vetted provider validates registration and redirect metadata.
+        clientRegistrationEndpoint: '/oauth/register',
         clientIdMetadataDocumentEnabled: true,
         accessTokenTTL: 600, refreshTokenTTL: 86400,
         scopesSupported: [...SCOPES, 'offline_access'], requiredScopes: ['mcp:use'],
