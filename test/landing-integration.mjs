@@ -40,19 +40,15 @@ test('self-hosted links and copy configuration use the current origin without cr
  assert.doesNotMatch(html,/Claude|ChatGPT|Codex|guide-codex|guide-claude|guide-chatgpt/);
  assert.match(html,/Connect your account to Cursor/);
  assert.match(html,/data-copy-target="preview-prompt"/);assert.match(html,/dryRun:true/);
- assert.match(html,/href="https:\/\/cursor.com\/install-mcp/);
+ assert.doesNotMatch(html,/Open web installer|Manual setup/);
 });
 
-test('manual guide actions leave fallback panels visible',async()=>{
+test('Cursor install group has only the native Add to Cursor action',async()=>{
  const html=await landingResponse('https://mcp.example.test',true,true).text();
- const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
- const {runInNewContext}=await import('node:vm');
- const fallback={hidden:false},otherGuide={hidden:false},target={hidden:true,querySelector:()=>({focus(){}}),scrollIntoView(){}};
- let click;
- const trigger={dataset:{guide:'cursor'},addEventListener:(_event,fn)=>{click=fn;}};
- const document={getElementById:id=>id==='guide-cursor'?target:{value:'https://mcp.example.test/mcp'},querySelectorAll:selector=>selector==='[data-guide]'?[trigger]:selector==='section.guide'?[otherGuide,target]:selector==='.guide'?[otherGuide,target,fallback]:[]};
- runInNewContext(script,{document,setTimeout,clearTimeout});click();
- assert.equal(fallback.hidden,false);assert.equal(otherGuide.hidden,true);assert.equal(target.hidden,false);
+ const actions=html.match(/<div class="cursor-actions">([\s\S]*?)<\/div>/)[1];
+ assert.equal((actions.match(/<(?:a|button)\b/g)||[]).length,1);
+ assert.match(actions,/cursor:\/\/anysphere.cursor-deeplink\/mcp\/install/);
+ assert.match(actions,/>Add to Cursor<\/a>/);
 });
 
 import {readFile} from 'node:fs/promises';
