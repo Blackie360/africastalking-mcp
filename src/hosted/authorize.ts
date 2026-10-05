@@ -7,7 +7,7 @@ import { credentialSchema, EncryptedCredentialStore, tenantId } from './credenti
 import type { HostedConfig, Principal, RateLimits, DedupeStore } from './contracts.js';
 import { SCOPES } from './contracts.js';
 import { secureResponse } from './handler.js';
-import { onboardingPage } from './onboarding.js';
+import { onboardingPage, onboardingCsp } from './onboarding.js';
 
 export function validAuthorization(a: AuthRequest, c: HostedConfig): boolean {
   return a.responseType === 'code' && a.codeChallengeMethod === 'S256' && /^[A-Za-z0-9_-]{43}$/.test(a.codeChallenge ?? '') && a.resource === c.resource && a.scope.includes('mcp:use') && a.scope.every(s => (SCOPES as readonly string[]).includes(s) || s === 'offline_access');
@@ -43,7 +43,7 @@ export function createAuthorizationHandler(config: HostedConfig, deps: { oauth: 
         const consent = await deps.oauth.beginConsent(auth);
         const headers = new Headers(consent.headers);
         headers.set('Content-Type', 'text/html; charset=utf-8'); headers.set('Cache-Control', 'no-store'); headers.set('Referrer-Policy', 'no-referrer');
-        headers.set('Content-Security-Policy', "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+        headers.set('Content-Security-Policy', onboardingCsp());
         headers.set('X-Frame-Options', 'DENY'); headers.set('X-Content-Type-Options', 'nosniff');
         return new Response(onboardingPage(consent.handle, description, config.productionEnabled), { headers });
       }
