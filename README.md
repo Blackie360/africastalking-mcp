@@ -8,8 +8,8 @@ An unofficial, sandbox-first MCP server for Africa’s Talking balance, SMS and 
 
 ## Connect without installing locally
 
-1. Open **[at.blackielabs.com](https://at.blackielabs.com/)** and choose your AI client.
-2. For Cursor, click **Add to Cursor**, allow your browser to open Cursor, and confirm the server. The web installer and remote JSON configuration are fallbacks. For Claude, ChatGPT and Codex, follow the client guide on the page; those clients do not have a verified universal install link.
+1. Open **[at.blackielabs.com](https://at.blackielabs.com/)** and choose Cursor.
+2. For Cursor, click **Add to Cursor**, allow your browser to open Cursor, and confirm the server. The web installer and remote JSON configuration are fallbacks. The public connection page is focused on Cursor.
 3. Follow your client’s OAuth connection prompt. On the authorization page, start with **Sandbox**, enter your sandbox API key, and approve the read-only balance check. The sandbox username is filled automatically. Sending is optional and off by default.
 4. Return to your client and try the **first preview** prompt provided on the connection page.
 

@@ -4,7 +4,7 @@ This repository contains a staging adapter and a public connection landing page.
 
 ## Hosted users
 
-Users do not deploy or install this repository. Send them to [the connection page](https://at.blackielabs.com/) to add the hosted endpoint to their client and enter their own provider key during OAuth. Sandbox onboarding fills the username automatically; live onboarding still requires the application username, recipient allowlist and explicit live consent. The Add to Cursor button uses the [documented native install link](https://cursor.com/docs/mcp/install-links), with a web installer and URL/configuration copy fallback. Other clients receive explicit instructions rather than unsupported install links.
+Users do not deploy or install this repository. Send them to [the connection page](https://at.blackielabs.com/) to add the hosted endpoint to their client and enter their own provider key during OAuth. Sandbox onboarding fills the username automatically; live onboarding still requires the application username, recipient allowlist and explicit live consent. The Add to Cursor button uses the [documented native install link](https://cursor.com/docs/mcp/install-links), with a web installer and URL/configuration copy fallback. The public connection page shows Cursor only; the backend remains standards-based MCP.
 
 Client installation and OAuth connection are separate steps. Confirm installation, then start the client’s Connect/login flow. A functioning button alone does not establish OAuth interoperability. DCR is enabled for clients such as Cursor; installation still requires a separate OAuth connection and user consent.
 
