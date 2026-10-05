@@ -54,3 +54,17 @@ test('manual guide actions leave fallback panels visible',async()=>{
  runInNewContext(script,{document,setTimeout,clearTimeout});click();
  assert.equal(fallback.hidden,false);assert.equal(otherGuide.hidden,true);assert.equal(target.hidden,false);
 });
+
+import {readFile} from 'node:fs/promises';
+test('plugin marketplace resolves to a credential-free hosted package in both supported formats',async()=>{
+ const read=async path=>JSON.parse(await readFile(new URL('../'+path,import.meta.url),'utf8'));
+ const market=await read('.agents/plugins/marketplace.json');
+ const entry=market.plugins.find(p=>p.name==='africastalking');assert.ok(entry);
+ const folder=entry.source.path.replace(/^\.\//,'');
+ const portable=await read(folder+'/plugin.json');assert.equal(portable.name,entry.name);assert.deepEqual(await read('plugin.json'),portable);
+ const remote=await read(folder+'/mcp.json');assert.equal(remote.mcpServers.africastalking.type,'streamable-http');assert.deepEqual(await read('mcp.json'),remote);
+ const compat=await read(folder+'/.codex-plugin/plugin.json');
+ const config=await read(folder+'/'+compat.mcpServers.replace(/^\.\//,''));
+ assert.equal(config.mcpServers.africastalking.type,'http');
+ for(const file of [remote,config]){assert.equal(file.mcpServers.africastalking.url,'https://at.blackielabs.com/mcp');assert.doesNotMatch(JSON.stringify(file),/command|apiKey|AT_API_KEY|Authorization|env/);}
+});
