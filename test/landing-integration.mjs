@@ -1,3 +1,4 @@
+import { runInNewContext } from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -17,29 +18,20 @@ test('public landing is available without credentials; protected routes stay fai
  assert.equal(r.headers.get('cache-control'),'no-store');
 });
 
-import { onboardingPage, onboardingCsp } from '../dist/src/hosted/onboarding.js';
-import { landingResponse } from '../dist/src/hosted/landing.js';
-import { runInNewContext } from 'node:vm';
-test('hosted onboarding switches sandbox/live requirements without enabling sends and CSP permits only its scripts',()=>{
- const description={clientName:'<untrusted>',clientDomain:'client.example',redirectHost:'client.example',redirectIsLoopback:false,scope:['mcp:use']};
- const html=onboardingPage('opaque-handle',description,true);
- assert.match(html,/&lt;untrusted&gt;/);assert.doesNotMatch(html,/<untrusted>/);
+import {landingResponse} from '../dist/src/hosted/landing.js';
+import {onboardingPage,onboardingCsp,onboardingErrorResponse} from '../dist/src/hosted/onboarding.js';
+test('authorization page escapes client data, starts with sends off, and error recovery never repeats credentials',async()=>{
+ const description={clientName:'<unsafe>',clientDomain:'client.example',redirectHost:'localhost:3000',redirectIsLoopback:true,scope:['mcp:use']};
+ const html=onboardingPage('opaque-test-handle',description,true);
+ assert.match(html,/&lt;unsafe&gt;/);assert.doesNotMatch(html,/<unsafe>/);
  assert.match(html,/type="password" name="apiKey"/);assert.doesNotMatch(html,/name="(?:mutationsEnabled|productionOptIn)"[^>]*checked/);
+ assert.match(html,/method="post" action="\/authorize"/);
  for(const [tag,type] of [['script','script-src'],['style','style-src']]){
-  const body=html.match(new RegExp('<'+tag+'>([\\s\\S]*?)</'+tag+'>'))[1];
-  assert.ok(onboardingCsp().includes(type+" 'sha256-"+createHash('sha256').update(body).digest('base64')+"'"));
+  const body=html.match(new RegExp('<'+tag+'>([\\s\\S]*?)</'+tag+'>'))[1];assert.ok(onboardingCsp().includes(type+" 'sha256-"+createHash('sha256').update(body).digest('base64')+"'"));
  }
- const elements={environment:{value:'sandbox',addEventListener(_event,fn){this.change=fn;}},username:{value:'sandbox'},allowedRecipients:{value:''},productionOptIn:{checked:false}};
- const liveFields={},hint={};const form={elements,addEventListener(){}};
- runInNewContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],{document:{querySelector:()=>form,getElementById:id=>id==='live-fields'?liveFields:hint}});
- assert.equal(liveFields.hidden,true);assert.equal(elements.username.readOnly,true);assert.equal(elements.productionOptIn.required,false);
- elements.environment.value='production';elements.environment.change();
- assert.equal(liveFields.hidden,false);assert.equal(elements.username.value,'');assert.equal(elements.username.readOnly,false);
- assert.equal(elements.allowedRecipients.required,true);assert.equal(elements.productionOptIn.required,true);assert.equal(elements.productionOptIn.checked,false);
- elements.username.value='live_app';elements.productionOptIn.checked=true;
- elements.environment.value='sandbox';elements.environment.change();
- assert.equal(elements.username.value,'sandbox');assert.equal(elements.productionOptIn.checked,false);assert.equal(elements.allowedRecipients.required,false);
  assert.doesNotMatch(onboardingPage('handle',description,false),/<option value="production">/);
+ const error=onboardingErrorResponse('consent_expired_or_used',400);assert.equal(error.status,400);assert.equal(error.headers.get('cache-control'),'no-store');
+ const text=await error.text();assert.match(text,/Authenticate/);assert.doesNotMatch(text,/opaque-test-handle|<form|apiKey=/);
 });
 
 test('self-hosted links and copy configuration use the current origin without credentials or local commands',async()=>{
@@ -88,4 +80,16 @@ test('guided Add copies hosted URL and reveals steps; clipboard denial leaves a 
  assert.equal(guide.hidden,false);assert.equal(heading.focused,true);assert.equal(clipboard.copied,endpoint.value);
  clipboard.writeText=async()=>{throw new Error('denied');};button.listeners.click();await new Promise(resolve=>setImmediate(resolve));
  assert.equal(endpoint.focused,true);assert.equal(endpoint.selected,true);assert.match(feedback.textContent,/Select and copy/);
+});
+
+test('manual guide actions leave fallback panels visible',async()=>{
+ const html=await landingResponse('https://mcp.example.test',true,true).text();
+ const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+ const {runInNewContext}=await import('node:vm');
+ const fallback={hidden:false},otherGuide={hidden:false},target={hidden:true,querySelector:()=>({focus(){}}),scrollIntoView(){}};
+ let click;
+ const trigger={dataset:{guide:'codex'},addEventListener:(_event,fn)=>{click=fn;}};
+ const document={getElementById:id=>id==='guide-codex'?target:{value:'https://mcp.example.test/mcp'},querySelectorAll:selector=>selector==='[data-guide]'?[trigger]:selector==='section.guide'?[otherGuide,target]:selector==='.guide'?[otherGuide,target,fallback]:[]};
+ runInNewContext(script,{document,setTimeout,clearTimeout});click();
+ assert.equal(fallback.hidden,false);assert.equal(otherGuide.hidden,true);assert.equal(target.hidden,false);
 });
