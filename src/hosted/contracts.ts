@@ -52,4 +52,4 @@ export interface HostedConfig {
   allowedOrigins: readonly string[];
   productionEnabled: boolean;
 }
-export const SCOPES = ['mcp:use', 'credentials:manage', 'sms:send', 'airtime:send', 'production:use'] as const;
+export const SCOPES = ['mcp:use', 'credentials:manage', 'sms:send', 'airtime:send', 'sms:read', 'data:read', 'data:send', 'subscriptions:manage', 'production:use'] as const;

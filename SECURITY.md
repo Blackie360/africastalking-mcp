@@ -22,3 +22,7 @@ D1 stores AES-GCM ciphertext bound to the tenant and key version. D1 atomic coun
 The OAuth library validates clients, redirects, consent cookie binding, PKCE and tokens. The application enforces exact origin/resource, explicit production and send consent, fixed provider endpoints, scopes and durable pre-dispatch reservations. Its authentication page performs only a balance GET during connection setup. The initial deployment still requires real-runtime security and client interoperability testing; local mocks do not certify production readiness.
 
 See DEPLOYMENT.md for KV consistency, deletion, retention, key rotation and logging limitations. For sensitive reports, contact the repository maintainer privately; do not include real credentials or customer data in public issues.
+
+## Additional service boundaries
+
+Inbound message text is omitted unless explicitly requested and remains untrusted data. Results mask phone numbers and exclude arbitrary provider/request metadata; the MCP client still sees tool inputs. New hosted read scopes and stored write permissions require separate consent. Old grants/credential records cannot silently gain new writes. Data sends and subscription changes use the same no-retry, recipient policy and duplicate guards as existing sends. Mobile-data volume caps are not monetary budgets.

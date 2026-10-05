@@ -21,12 +21,16 @@ for (const mode of ['legacy', 'auto'] as const) {
     try {
       await client.connect(transport);
       const list = await client.listTools();
-      assert.deepEqual(list.tools.map(tool => tool.name).sort(), ['at_get_balance', 'at_get_config', 'at_send_airtime', 'at_send_sms']);
+      assert.deepEqual(list.tools.map(tool => tool.name).sort(), ['at_get_balance', 'at_get_config', 'at_send_airtime', 'at_send_sms', 'at_fetch_sms', 'at_fetch_subscriptions', 'at_create_subscription', 'at_delete_subscription', 'at_get_data_balance', 'at_find_data_transaction', 'at_send_mobile_data', 'at_preview_ussd_session'].sort());
       const config = await client.callTool({ name: 'at_get_config', arguments: {} });
       assert.equal((config.structuredContent as Record<string, unknown>)?.defaultDryRun, true);
       const preview = await client.callTool({ name: 'at_send_sms', arguments: sms });
       assert.equal((preview.structuredContent as Record<string, unknown>)?.sent, false);
       assert.equal((preview.structuredContent as Record<string, unknown>)?.dryRun, true);
+      const ussd = await client.callTool({ name: 'at_preview_ussd_session', arguments: { text: '1*1' } });
+      assert.match(String((ussd.structuredContent as Record<string, unknown>)?.response), /^END /);
+      const bundle = await client.callTool({ name: 'at_send_mobile_data', arguments: { productName: 'Demo', recipients: [{ phoneNumber: '+254700000000', quantity: 50, unit: 'MB', validity: 'Day' }] } });
+      assert.equal((bundle.structuredContent as Record<string, unknown>)?.sent, false);
       const blocked = await client.callTool({ name: 'at_send_sms', arguments: { ...sms, dryRun: false } });
       assert.equal(blocked.isError, true);
       assert.match(JSON.stringify(blocked), /MUTATIONS_DISABLED/);

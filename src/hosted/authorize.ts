@@ -26,7 +26,7 @@ async function readForm(request: Request): Promise<URLSearchParams | null> {
     chunks.push(value);
   }
   const form = new URLSearchParams(Buffer.concat(chunks).toString('utf8'));
-  if ([...form.keys()].some(k => form.getAll(k).length !== 1 || !['handle','apiKey','environment','username','mutationsEnabled','productionOptIn','allowedRecipients','consent'].includes(k))) return null;
+  if ([...form.keys()].some(k => form.getAll(k).length !== 1 || !['handle','apiKey','environment','username','mutationsEnabled','productionOptIn','allowedRecipients','consent','smsReadsEnabled','dataReadsEnabled','dataMutationsEnabled','subscriptionsEnabled'].includes(k))) return null;
   return form;
 }
 export function createAuthorizationHandler(config: HostedConfig, deps: { oauth: OAuthHelpers; credentials: EncryptedCredentialStore; limits: RateLimits; replay: DedupeStore; providerFetch?: FetchLike }) {
@@ -57,14 +57,20 @@ export function createAuthorizationHandler(config: HostedConfig, deps: { oauth: 
       // Vetted library binds consent to a browser cookie and consumes it once.
       const granted = ['mcp:use', 'credentials:manage'];
       if (form.get('mutationsEnabled') === 'true') granted.push('sms:send', 'airtime:send');
+      if (form.get('smsReadsEnabled') === 'true') granted.push('sms:read');
+      if (form.get('dataReadsEnabled') === 'true') granted.push('data:read');
+      if (form.get('dataMutationsEnabled') === 'true') granted.push('data:send');
+      if (form.get('subscriptionsEnabled') === 'true') granted.push('subscriptions:manage');
       if (form.get('environment') === 'production' && form.get('productionOptIn') === 'true') granted.push('production:use');
       const approved = await deps.oauth.approveConsent(request, handle, { scope: granted });
       if (!validAuthorization(approved.request, config)) return reply({ error: 'invalid_authorization_request' }, 400);
-      const parsed = credentialSchema.safeParse({ apiKey: form.get('apiKey'), environment: form.get('environment') ?? 'sandbox', username: form.get('username') ?? 'sandbox', mutationsEnabled: form.get('mutationsEnabled') === 'true', productionOptIn: form.get('productionOptIn') === 'true', allowedRecipients: (form.get('allowedRecipients') ?? '').split(',').map(x => x.trim()).filter(Boolean) });
+      const parsed = credentialSchema.safeParse({ apiKey: form.get('apiKey'), environment: form.get('environment') ?? 'sandbox', username: form.get('username') ?? 'sandbox', mutationsEnabled: form.get('mutationsEnabled') === 'true', dataMutationsEnabled: form.get('dataMutationsEnabled') === 'true', subscriptionsEnabled: form.get('subscriptionsEnabled') === 'true', productionOptIn: form.get('productionOptIn') === 'true', allowedRecipients: (form.get('allowedRecipients') ?? '').split(',').map(x => x.trim()).filter(Boolean) });
       if (!parsed.success) return reply({ error: 'invalid_connection_settings' }, 400);
       const credential = parsed.data;
       if (credential.environment === 'production' && (!config.productionEnabled || !approved.request.scope.includes('production:use'))) return reply({ error: 'production_scope_required' }, 403);
       if (credential.mutationsEnabled && !approved.request.scope.some(s => s === 'sms:send' || s === 'airtime:send')) return reply({ error: 'send_scope_required' }, 403);
+      if (credential.dataMutationsEnabled && !approved.request.scope.includes('data:send')) return reply({ error: 'data_scope_required' }, 403);
+      if (credential.subscriptionsEnabled && !approved.request.scope.includes('subscriptions:manage')) return reply({ error: 'subscription_scope_required' }, 403);
       const rateKey = createHash('sha256').update(approved.request.clientId).digest('hex');
       if (!await deps.limits.consume('login-client:'+rateKey, 'credential', 5, 60)) return reply({ error: 'rate_limited' }, 429);
       const service = new AfricaTalkingService(loadConfig({ AT_ENVIRONMENT: credential.environment, AT_USERNAME: credential.username, AT_API_KEY: credential.apiKey, AT_ENABLE_PRODUCTION: String(credential.productionOptIn), AT_ENABLE_MUTATIONS: 'false' }), deps.providerFetch);
