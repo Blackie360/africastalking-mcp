@@ -4,6 +4,7 @@ import type { OAuthHelpers, OAuthResourceAuth } from '@cloudflare/workers-oauth-
 import { createHash } from 'node:crypto';
 import type { HostedConfig, Principal } from './contracts.js';
 import { SCOPES } from './contracts.js';
+import { landingResponse } from './landing.js';
 import { createHostedHandler, secureResponse } from './handler.js';
 import { EncryptedCredentialStore } from './credentials.js';
 import { D1Ciphertexts, D1Controls, DeploymentKeyManagement } from './d1.js';
@@ -22,9 +23,11 @@ export interface Env {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
-      if (!env.DB || !env.OAUTH_KV || !env.PUBLIC_ORIGIN || !env.CREDENTIAL_ENCRYPTION_KEY || !env.CREDENTIAL_KEY_ID) return secureResponse({ error: 'hosting_not_configured' }, 503);
+      if (!env.PUBLIC_ORIGIN) return secureResponse({ error: 'hosting_not_configured' }, 503);
       if (new URL(env.PUBLIC_ORIGIN).origin !== env.PUBLIC_ORIGIN || !env.PUBLIC_ORIGIN.startsWith('https://')) return secureResponse({ error: 'hosting_not_configured' }, 503);
       if (new URL(request.url).origin !== env.PUBLIC_ORIGIN) return secureResponse({ error: 'invalid_host' }, 400);
+      if (new URL(request.url).pathname === '/' && request.method === 'GET') return landingResponse(env.PUBLIC_ORIGIN, !!(env.DB && env.OAUTH_KV && env.CREDENTIAL_ENCRYPTION_KEY && env.CREDENTIAL_KEY_ID), env.ENABLE_PRODUCTION === 'true');
+      if (!env.DB || !env.OAUTH_KV || !env.CREDENTIAL_ENCRYPTION_KEY || !env.CREDENTIAL_KEY_ID) return secureResponse({ error: 'hosting_not_configured' }, 503);
       const config: HostedConfig = { resource: env.PUBLIC_ORIGIN+'/mcp', authorizationServer: env.PUBLIC_ORIGIN, allowedOrigins: [env.PUBLIC_ORIGIN], productionEnabled: env.ENABLE_PRODUCTION === 'true' };
       const keys = new DeploymentKeyManagement(env.CREDENTIAL_KEY_ID, env.CREDENTIAL_ENCRYPTION_KEY);
       const keyCheck = await keys.encryptionKey(env.CREDENTIAL_KEY_ID); keyCheck.fill(0);

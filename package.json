@@ -19,7 +19,7 @@
     "start": "node dist/src/index.js",
     "ussd": "node dist/examples/ussd-callback.js",
     "build:worker": "node scripts/build-worker.mjs",
-    "test:oauth": "node --experimental-loader ./test/cloudflare-node-loader.mjs --test test/oauth-integration.mjs",
+    "test:oauth": "node --experimental-loader ./test/cloudflare-node-loader.mjs --test test/oauth-integration.mjs test/landing-integration.mjs",
     "check:hosted": "npm run typecheck && npm run build && node --test dist/test/config.test.js dist/test/protocol.test.js dist/test/service.test.js dist/test/hosted.test.js dist/test/d1.test.js && npm run test:oauth && npm run build:worker"
   },
   "dependencies": {

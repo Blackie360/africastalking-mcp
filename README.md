@@ -2,7 +2,7 @@
 
 An unofficial, sandbox-first MCP server for Africa’s Talking balance, SMS and airtime. Run locally over stdio, or self-host the multi-tenant HTTP adapter on Cloudflare Workers. Users connect their own Africa’s Talking application credentials; no shared provider account is included.
 
-**Hosted status: staging implementation, not a deployed service.** Local protocol, isolation, storage and OAuth checks pass. A real Workers deployment, target-client OAuth interoperability and Free-plan CPU performance remain unverified. See [deployment instructions](DEPLOYMENT.md) and [verification boundaries](VERIFICATION.md).
+**Hosted status: staging deployment.** The [connection page](https://at.blackielabs.com/) is live; its setup banner shows whether operator credential setup is still pending. Local protocol, isolation, storage and OAuth checks pass. Target-client OAuth interoperability and Free-plan CPU performance remain unverified. See [deployment instructions](DEPLOYMENT.md) and [verification boundaries](VERIFICATION.md).
 
 **Not affiliated with, endorsed by or maintained by Africa’s Talking.** This is a tested starter implementation, not a production-certified integration. No credentials are included. It has not sent a live SMS or airtime transaction.
 

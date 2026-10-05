@@ -1,6 +1,6 @@
 # Hosted deployment guide
 
-This repository contains a staging adapter, not a running hosted endpoint. Do not enter real credentials until you have verified the deployed origin and completed the checks below. Deployment creates persistent resources and a service that processes other users’ provider credentials; obtain the operator’s approval first.
+This repository contains a staging adapter and a public connection landing page. The reference deployment is https://at.blackielabs.com/; `/mcp` remains fail-closed until its operator securely completes configuration. Do not enter real credentials until you have verified the deployed origin and completed the checks below. Deployment creates persistent resources and a service that processes other users’ provider credentials; obtain the operator’s approval first.
 
 ## Dedicated resources
 
