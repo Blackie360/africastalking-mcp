@@ -16,3 +16,18 @@ test('public landing is available without credentials; protected routes stay fai
  assert.equal((await worker.fetch(new Request('https://other.example/'),env,{})).status,400);
  assert.equal(r.headers.get('cache-control'),'no-store');
 });
+
+import {onboardingPage,onboardingCsp,onboardingErrorResponse} from '../dist/src/hosted/onboarding.js';
+test('authorization page escapes client data, starts with sends off, and error recovery never repeats credentials',async()=>{
+ const description={clientName:'<unsafe>',clientDomain:'client.example',redirectHost:'localhost:3000',redirectIsLoopback:true,scope:['mcp:use']};
+ const html=onboardingPage('opaque-test-handle',description,true);
+ assert.match(html,/&lt;unsafe&gt;/);assert.doesNotMatch(html,/<unsafe>/);
+ assert.match(html,/type="password" name="apiKey"/);assert.doesNotMatch(html,/name="(?:mutationsEnabled|productionOptIn)"[^>]*checked/);
+ assert.match(html,/method="post" action="\/authorize"/);
+ for(const [tag,type] of [['script','script-src'],['style','style-src']]){
+  const body=html.match(new RegExp('<'+tag+'>([\\s\\S]*?)</'+tag+'>'))[1];assert.ok(onboardingCsp().includes(type+" 'sha256-"+createHash('sha256').update(body).digest('base64')+"'"));
+ }
+ assert.doesNotMatch(onboardingPage('handle',description,false),/<option value="production">/);
+ const error=onboardingErrorResponse('consent_expired_or_used',400);assert.equal(error.status,400);assert.equal(error.headers.get('cache-control'),'no-store');
+ const text=await error.text();assert.match(text,/Authenticate/);assert.doesNotMatch(text,/opaque-test-handle|<form|apiKey=/);
+});
