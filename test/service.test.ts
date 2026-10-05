@@ -42,7 +42,7 @@ test('status exposes safety defaults but neither credentials nor recipient phone
   const status = new AfricaTalkingService(loadConfig({ AT_API_KEY: KEY, AT_ALLOWED_RECIPIENTS: A })).status();
   assert.deepEqual(status, {
     unofficial: true, environment: 'sandbox', credentialsConfigured: true,
-    mutationsEnabled: false, productionEnabled: false, defaultDryRun: true,
+    mutationsEnabled: false, smsSendEnabled:false, airtimeSendEnabled:false, dataSendEnabled:false, subscriptionChangesEnabled:false, productionEnabled: false, defaultDryRun: true,
     allowedRecipientCount: 1, maxRecipients: 10, airtimeCurrency: 'KES',
     maxAirtimePerRequest: '100.00', timeoutMs: 15000, dataMutationsEnabled: false, subscriptionsEnabled: false, maxDataMbPerRequest: 1024, automaticRetries: false,
     duplicateSuppressionSeconds: 300,

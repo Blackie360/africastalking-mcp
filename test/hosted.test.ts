@@ -62,6 +62,8 @@ test('same sandbox username does not merge tenants; actual HTTP MCP calls use is
   }});
   const [a,b]=await Promise.all([clientFor(handler,'alice'),clientFor(handler,'bob')]);
   try {
+    const listed=await a.listTools();
+    assert.deepEqual(listed.tools.map(tool=>tool.name).sort(),['at_get_config','at_get_balance','at_send_sms','at_send_airtime','at_fetch_sms','at_fetch_subscriptions','at_create_subscription','at_delete_subscription','at_get_data_balance','at_find_data_transaction','at_send_mobile_data','at_preview_ussd_session','at_disconnect'].sort());
     const outputs=await Promise.all([a.callTool({name:'at_get_balance',arguments:{}}),b.callTool({name:'at_get_balance',arguments:{}})]);
     assert.deepEqual(outputs.map(o=>(o.structuredContent as Record<string, unknown>)?.balance),['KES 10','KES 20']);
     assert.deepEqual(seen.sort(),['synthetic-a','synthetic-b']);
@@ -188,6 +190,7 @@ test('new hosted scopes and stored opt-ins isolate reads/writes from existing SM
  // Old ciphertext defaults new flags to false even if a token has additional scopes.
  assert.match(JSON.stringify(await call('at_send_mobile_data',data)),/DATA_SEND_DISABLED/);assert.equal(calls,2);
  await f.credentials.put(tenantId(f.users.alice!),credentialSchema.parse({apiKey:'synthetic-a',dataMutationsEnabled:true,subscriptionsEnabled:true,mutationsEnabled:false,allowedRecipients:['+254700000000']}));
+ const safety=(await call('at_get_config',{})).structuredContent as Record<string,unknown>;assert.equal(safety.mutationsEnabled,false);assert.equal(safety.smsSendEnabled,false);assert.equal(safety.airtimeSendEnabled,false);assert.equal(safety.dataSendEnabled,true);assert.equal(safety.subscriptionChangesEnabled,true);
  assert.equal((await call('at_send_mobile_data',data)).isError,undefined);assert.equal(calls,3);
  assert.match(JSON.stringify(await call('at_send_mobile_data',data)),/DUPLICATE_REQUEST/);assert.equal(calls,3);
  assert.equal((await call('at_create_subscription',{shortCode:'46585',keyword:'TEST',phoneNumber:'+254700000000',dryRun:false})).isError,undefined);assert.equal(calls,4);

@@ -11,12 +11,15 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Africa’s Talking · Unofficial",
-    "shortDescription": "Balance reads, SMS previews and approved airtime.",
+    "shortDescription": "SMS, airtime and mobile data",
     "developerName": "Blackie360",
     "category": "Productivity",
     "capabilities": [
       "Read",
       "Write"
-    ]
+    ],
+    "longDescription": "An unofficial Africa’s Talking integration for developers. Connect your own application to read balances and inbound SMS, preview or approve SMS, airtime, subscriptions and mobile data, and test the offline USSD demo. Production actions may cost money and require consent. Provider delivery and marketplace approval are not guaranteed.",
+    "composerIcon": "./assets/africastalking-mcp.svg",
+    "logo": "./assets/africastalking-mcp.svg"
   }
 }

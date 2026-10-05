@@ -60,6 +60,13 @@ test('plugin marketplace resolves to a credential-free hosted package in both su
  const portable=await read(folder+'/plugin.json');assert.equal(portable.name,entry.name);assert.deepEqual(await read('plugin.json'),portable);
  const remote=await read(folder+'/mcp.json');assert.equal(remote.mcpServers.africastalking.type,'streamable-http');assert.deepEqual(await read('mcp.json'),remote);
  const compat=await read(folder+'/.codex-plugin/plugin.json');
+ // Required Codex presentation fields and limits from the official submission reference.
+ for(const [key,max] of [['displayName',30],['shortDescription',30],['longDescription',4000],['developerName',80]])assert.ok(typeof compat.interface[key]==='string'&&compat.interface[key].length>0&&compat.interface[key].length<=max,key);
+ for(const key of ['composerIcon','logo']){
+  const path=compat.interface[key];assert.match(path,/^\.\/assets\/[^/]+\.svg$/);
+  const icon=await readFile(new URL('../'+folder+'/'+path.slice(2),import.meta.url),'utf8');assert.match(icon,/viewBox="0 0 256 256"/);assert.ok(Buffer.byteLength(icon)<5*1024*1024);
+ }
+
  const config=await read(folder+'/'+compat.mcpServers.replace(/^\.\//,''));
  assert.equal(config.mcpServers.africastalking.type,'http');
  for(const file of [remote,config]){assert.equal(file.mcpServers.africastalking.url,'https://at.blackielabs.com/mcp');assert.doesNotMatch(JSON.stringify(file),/command|apiKey|AT_API_KEY|Authorization|env/);}
@@ -87,7 +94,7 @@ test('SPA routes restore views, focus headings and recover unknown links without
 
 test('self-hosted Geist assets load publicly with bounded routes and CSP',async()=>{
  const origin='https://mcp.example.test';const env={PUBLIC_ORIGIN:origin};
- for(const name of ['sans','mono']){
+ for(const name of ['sans','mono','pixel-square']){
   const response=await worker.fetch(new Request(origin+'/fonts/geist-'+name+'-1.7.2.woff2'),env,{});
   assert.equal(response.status,200);assert.equal(response.headers.get('content-type'),'font/woff2');
   assert.equal(Buffer.from(await response.arrayBuffer()).subarray(0,4).toString(),'wOF2');

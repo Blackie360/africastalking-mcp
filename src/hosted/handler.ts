@@ -90,7 +90,12 @@ export function createHostedHandler(config: HostedConfig, deps: HostedDependenci
       };
       // SDK owns cleanup for its per-request instances. No process-wide shared server/credential.
       const http = createMcpHandler(() => {
-        const server = createServer(local, providerFetch);
+        const server = createServer(local, providerFetch, {
+          smsSendEnabled: credential.mutationsEnabled && p.scopes.includes('sms:send'),
+          airtimeSendEnabled: credential.mutationsEnabled && p.scopes.includes('airtime:send'),
+          dataSendEnabled: credential.dataMutationsEnabled && p.scopes.includes('data:send'),
+          subscriptionChangesEnabled: credential.subscriptionsEnabled && p.scopes.includes('subscriptions:manage'),
+        });
         server.registerTool('at_disconnect', {
           title: 'Disconnect Africa’s Talking account',
           description: 'Delete only this connection’s encrypted credential. All client tokens for this connection lose provider access. Requires explicit user confirmation.',

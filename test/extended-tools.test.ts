@@ -72,3 +72,12 @@ test('malformed and mismatched provider data fails closed, and partial data send
  assert.equal((await partial.dataSend({...bundle,recipients:[...bundle.recipients,{...bundle.recipients[0],phoneNumber:'+254700000001'}],dryRun:false})).status,'partial');
  const invalid=make('sandbox',async()=>Response.json({error:'raw-private'}));await assert.rejects(invalid.inbox({}),/Unexpected/);await assert.rejects(invalid.subscriptions({shortCode:'46585',keyword:'TEST'}),/Unexpected/);await assert.rejects(invalid.dataBalance(),/Unexpected/);
 });
+
+test('explicit inbound SMS text preserves supported long content while redacting secrets and numbers',async()=>{
+ const original='x'.repeat(4500)+' synthetic-secret '+phone+' END';
+ const service=make('sandbox',async()=>Response.json({SMSMessageData:{Messages:[{id:1,from:phone,to:'46585',date:'today',text:original}]}}));
+ const output=await service.inbox({includeMessageText:true});
+ assert.ok(output.messages[0]?.text?.startsWith('x'.repeat(4500)));assert.ok(output.messages[0]?.text?.endsWith(' END'));
+ assert.doesNotMatch(JSON.stringify(output),/synthetic-secret|\+254700000000/);
+ assert.equal((await service.inbox({})).messages[0]?.text,undefined);
+});
