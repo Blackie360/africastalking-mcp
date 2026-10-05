@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.env
+.env.*
+!.env.example
+.dev.vars*
+.wrangler/
+wrangler.jsonc
+*.log
+*.pem
+*.key
+attempt-history/
+sandbox-*-result.json
+sandbox-send-attempted.json
+__pycache__/

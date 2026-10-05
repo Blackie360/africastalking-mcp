@@ -1,0 +1,17 @@
+{
+  // Copy to wrangler.jsonc and fill only after deployment approval.
+  "name": "africastalking-mcp",
+  "main": "src/hosted/worker.ts",
+  "compatibility_date": "2026-10-05",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "workers_dev": true,
+  "observability": {"enabled": false},
+  "vars": {
+    "PUBLIC_ORIGIN": "https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev",
+    "CREDENTIAL_KEY_ID": "v1",
+    "ENABLE_PRODUCTION": "false"
+  },
+  "d1_databases": [{"binding": "DB", "database_name": "africastalking-mcp", "database_id": "REPLACE_AFTER_APPROVAL", "migrations_dir": "migrations"}],
+  "kv_namespaces": [{"binding": "OAUTH_KV", "id": "REPLACE_AFTER_APPROVAL"}]
+  // CREDENTIAL_ENCRYPTION_KEY must be supplied as a Worker secret, never vars.
+}
