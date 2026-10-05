@@ -14,3 +14,7 @@ attempt-history/
 sandbox-*-result.json
 sandbox-send-attempted.json
 __pycache__/
+
+# Project-local design guidance; not part of the distributed server
+/.agents/skills/
+/skills-lock.json

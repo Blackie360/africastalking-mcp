@@ -37,3 +37,9 @@ Regression tests verify install-link payloads, custom-origin configuration, esca
 ## Client buttons and plugin packaging (2026-10-05)
 
 Claude and ChatGPT now have Add actions that copy the remote endpoint and open their setup page. Codex copies the endpoint and shows desktop settings. Guides remain visible without JavaScript. The portable hosted plugin and Codex compatibility package are exposed through a repository marketplace. Tests cover guided-copy success and denial, remote-only plugin definitions, marketplace paths and client handoffs. The full hosted checks, seven OAuth/landing tests and existing 70-test suite passed. Directory approval, public publication and installation in all target clients are not established by these changes.
+
+## Current Cursor design (2026-10-05)
+
+This section supersedes earlier UI descriptions: the public website presents Cursor only. Other client package definitions remain in the source repository. The official Anthropic frontend-design skill was installed project-locally and applied to a blue-and-white messaging workspace design, including the landing, authorization and recovery pages. Local skill installation files are not distributed with this repository.
+
+The current hosted check passes: 68 core tests, six integration tests, type checking, compilation and Worker bundling. Browser checks at 1280px desktop and 390px mobile widths found no horizontal overflow. The manual guide opens with keyboard input and leaves fallback disclosures available; the synthetic consent fixture preserves key visibility control, required production fields and sandbox selection. Expired consent displays safe recovery instructions. Browser error logs were empty. No real authorization state or credential was captured in design screenshots. Cursor provider authorization remains unverified; these frontend checks do not establish end-to-end authentication or paid delivery.
