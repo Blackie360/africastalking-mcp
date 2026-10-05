@@ -67,8 +67,8 @@ test('plugin marketplace resolves to a credential-free hosted package in both su
  const market=await read('.agents/plugins/marketplace.json');
  const entry=market.plugins.find(p=>p.name==='africastalking');assert.ok(entry);
  const folder=entry.source.path.replace(/^\.\//,'');
- const portable=await read(folder+'/plugin.json');assert.equal(portable.name,entry.name);
- const remote=await read(folder+'/mcp.json');assert.equal(remote.mcpServers.africastalking.type,'streamable-http');
+ const portable=await read(folder+'/plugin.json');assert.equal(portable.name,entry.name);assert.deepEqual(await read('plugin.json'),portable);
+ const remote=await read(folder+'/mcp.json');assert.equal(remote.mcpServers.africastalking.type,'streamable-http');assert.deepEqual(await read('mcp.json'),remote);
  const compat=await read(folder+'/.codex-plugin/plugin.json');
  const config=await read(folder+'/'+compat.mcpServers.replace(/^\.\//,''));
  assert.equal(config.mcpServers.africastalking.type,'http');

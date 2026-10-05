@@ -12,7 +12,7 @@ The website's Claude and ChatGPT buttons copy the URL and open their connection 
 
 ## Cursor public marketplace
 
-Submit the public repository/plugin package at [Cursor Marketplace Publish](https://cursor.com/marketplace/publish). Cursor accepts a portable root `plugin.json` or its own `.cursor-plugin/plugin.json`. This repository keeps the portable plugin root under `plugins/africastalking`; identify that subdirectory in submission where supported, or distribute its contents as a dedicated plugin repository if the portal requires a root manifest. Include publisher information, a logo and an accurate description that says this integration is unofficial. Cursor reviews plugins before listing them. After approval, link the actual marketplace listing from the connection page. The existing native MCP install button works independently of marketplace approval.
+Submit the public repository/plugin package at [Cursor Marketplace Publish](https://cursor.com/marketplace/publish). Cursor accepts a portable root `plugin.json` or its own `.cursor-plugin/plugin.json`. The repository also exposes the same portable `plugin.json` and `mcp.json` at its root for portals that accept a repository URL. The submission ZIP uses the smaller `plugins/africastalking/` package. The independent logo is `assets/africastalking-mcp.svg`. Include publisher information, a logo and an accurate description that says this integration is unofficial. Cursor reviews plugins before listing them. After approval, link the actual marketplace listing from the connection page. The existing native MCP install button works independently of marketplace approval.
 
 Source: [Cursor plugin submission reference](https://cursor.com/docs/reference/plugins).
 
